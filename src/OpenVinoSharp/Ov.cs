@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 #pragma warning disable CA1401 // P/Invokes should not be visible
 
 namespace OpenVinoSharp;
@@ -20,6 +21,7 @@ public static partial class Ov
     {
         public long Rank;
         public long* Dimensions;
+        public readonly ReadOnlySpan<long> Span => new(Dimensions, checked((int)Rank));
     }
 
     public enum Status
