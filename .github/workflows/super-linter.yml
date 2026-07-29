@@ -21,6 +21,8 @@ jobs:
       # (/repos/{owner}/{repo}/statuses/{sha}), not the Checks API,
       # so statuses:write is the correct minimum permission (not checks:write)
       statuses: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Harden Runner
