@@ -20,6 +20,16 @@ public unsafe class OvTest
 
     [TestMethod]
     [OSCondition(OperatingSystems.Windows)]
+    public void OvTest_FailingStatusThrows()
+    {
+        var exception = Assert.ThrowsExactly<OvStatusException>(() => Ov.Status.GENERAL_ERROR.Ok());
+
+        Assert.AreEqual(Ov.Status.GENERAL_ERROR, exception.Status);
+        StringAssert.Contains(exception.Message, "general error");
+    }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
     public void OvTest_Raw_MnistInferenceSmoke()
     {
         var modelPath = Path.Combine(AppContext.BaseDirectory, TestModelFileName);
