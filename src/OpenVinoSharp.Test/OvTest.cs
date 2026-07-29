@@ -78,6 +78,44 @@ public unsafe class OvTest
             }
         }
     }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void OvModel_MnistInferenceSmoke()
+    {
+        var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+        using var core = new OvCore();
+        using var model = core.ReadModel(modelPath);
+        using var compiledModel = model.Compile();
+        using var inferRequest = compiledModel.CreateInferRequest();
+        using var inputTensor = inferRequest.GetInputTensor();
+        var inputShape = inputTensor.GetShape();
+        try
+        {
+            TraceShape("Input", inputShape);
+            new Span<float>(inputTensor.Data.ToPointer(), GetElementCount(inputShape)).Clear();
+            inferRequest.Infer();
+            using var outputTensor = inferRequest.GetOutputTensor();
+            var outputShape = outputTensor.GetShape();
+            try
+            {
+                TraceShape("Output", outputShape);
+                var values = new ReadOnlySpan<float>(outputTensor.Data.ToPointer(), GetElementCount(outputShape));
+                foreach (var value in values)
+                {
+                    Assert.IsTrue(float.IsFinite(value));
+                }
+            }
+            finally
+            {
+                Ov.ov_shape_free(ref outputShape).Ok();
+            }
+        }
+        finally
+        {
+            Ov.ov_shape_free(ref inputShape).Ok();
+        }
+    }
     private static void AssertStatus(Ov.Status status)
     {
         Assert.AreEqual(Ov.Status.Ok, status, Marshal.PtrToStringUTF8(Ov.ov_get_last_err_msg()));

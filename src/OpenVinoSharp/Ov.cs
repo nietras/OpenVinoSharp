@@ -45,6 +45,42 @@ public static partial class Ov
         NotImplementedCMethod = -16,
         UnknownException = -17,
     }
+
+    extension(Status result)
+    {
+        public void Ok()
+        {
+            if (result != Status.Ok)
+            {
+                Throws.Throw(result, result.ToStringFast());
+            }
+        }
+        public bool IsOk() => result == Status.Ok;
+        public bool IsError() => result != Status.Ok;
+        public string ToStringFast() => result switch
+        {
+            Status.Ok => nameof(Status.Ok),
+            Status.GeneralError => nameof(Status.GeneralError),
+            Status.NotImplemented => nameof(Status.NotImplemented),
+            Status.NetworkNotLoaded => nameof(Status.NetworkNotLoaded),
+            Status.ParameterMismatch => nameof(Status.ParameterMismatch),
+            Status.NotFound => nameof(Status.NotFound),
+            Status.OutOfBounds => nameof(Status.OutOfBounds),
+            Status.Unexpected => nameof(Status.Unexpected),
+            Status.RequestBusy => nameof(Status.RequestBusy),
+            Status.ResultNotReady => nameof(Status.ResultNotReady),
+            Status.NotAllocated => nameof(Status.NotAllocated),
+            Status.InferNotStarted => nameof(Status.InferNotStarted),
+            Status.NetworkNotRead => nameof(Status.NetworkNotRead),
+            Status.InferCancelled => nameof(Status.InferCancelled),
+            Status.InvalidCParameter => nameof(Status.InvalidCParameter),
+            Status.UnknownCError => nameof(Status.UnknownCError),
+            Status.NotImplementedCMethod => nameof(Status.NotImplementedCMethod),
+            Status.UnknownException => nameof(Status.UnknownException),
+            _ => $"Unknown:{(int)result}",
+        };
+    }
+
     public enum ElementType
     {
         Dynamic = 0,
