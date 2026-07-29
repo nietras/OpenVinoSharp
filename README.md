@@ -62,6 +62,62 @@ Ov.Empty();
 [assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0", FrameworkDisplayName=".NET 10.0")]
 namespace OpenVinoSharp
 {
-    public static class Ov { }
+    public static class Ov
+    {
+        public sealed class CompiledModel : System.IDisposable
+        {
+            public OpenVinoSharp.Ov.InferRequest CreateInferRequest() { }
+            public void Dispose() { }
+            protected override void Finalize() { }
+            public float[] Infer(System.ReadOnlySpan<float> input) { }
+        }
+        public sealed class Core : System.IDisposable
+        {
+            public Core() { }
+            public OpenVinoSharp.Ov.CompiledModel CompileModel(OpenVinoSharp.Ov.Model model, string deviceName = "CPU") { }
+            public OpenVinoSharp.Ov.CompiledModel CompileModelFromFile(string modelPath, string deviceName = "CPU") { }
+            public void Dispose() { }
+            protected override void Finalize() { }
+            public OpenVinoSharp.Ov.Model ReadModel(string modelPath) { }
+        }
+        public sealed class InferRequest : System.IDisposable
+        {
+            public System.ReadOnlyMemory<long> InputShape { get; }
+            public System.ReadOnlyMemory<long> OutputShape { get; }
+            public void Dispose() { }
+            protected override void Finalize() { }
+            public float[] Infer(System.ReadOnlySpan<float> input) { }
+        }
+        public sealed class Model : System.IDisposable
+        {
+            public void Dispose() { }
+            protected override void Finalize() { }
+        }
+        public sealed class OpenVinoException : System.InvalidOperationException
+        {
+            public OpenVinoSharp.Ov.OvStatus Status { get; }
+        }
+        public enum OvStatus
+        {
+            Ok = 0,
+            GeneralError = -1,
+            NotImplemented = -2,
+            NetworkNotLoaded = -3,
+            ParameterMismatch = -4,
+            NotFound = -5,
+            OutOfBounds = -6,
+            Unexpected = -7,
+            RequestBusy = -8,
+            ResultNotReady = -9,
+            NotAllocated = -10,
+            InferNotStarted = -11,
+            NetworkNotRead = -12,
+            InferCancelled = -13,
+            InvalidCParam = -14,
+            UnknownCError = -15,
+            NotImplementCMethod = -16,
+            UnknowException = -17,
+        }
+    }
 }
 ```

@@ -10,6 +10,10 @@
   <ItemGroup>
     <ProjectReference Include="..\OpenVinoSharp\OpenVinoSharp.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\models\mnist-8.onnx" Link="mnist-8.onnx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   
   <ItemGroup>
     <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
@@ -22,6 +26,7 @@
     </PackageReference>
     <PackageReference Include="MSTest" Version="4.3.3" />
     <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
+    <PackageReference Include="NtvLibs.oneTBB.tbb12.runtime.win-x64" Version="2023.1.0" />
   </ItemGroup>
 
 </Project>
