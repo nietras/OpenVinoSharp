@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static OpenVinoSharp.Ov;
 
 namespace OpenVinoSharp.Test;
 
@@ -15,16 +16,16 @@ public unsafe class OvTest
     [OSCondition(OperatingSystems.Windows)]
     public void OvTest_GetErrorInfo()
     {
-        Assert.AreEqual("general error", Marshal.PtrToStringUTF8(Ov.ov_get_error_info(Ov.Status.GENERAL_ERROR)));
+        Assert.AreEqual("general error", Marshal.PtrToStringUTF8(ov_get_error_info(Status.GENERAL_ERROR)));
     }
 
     [TestMethod]
     [OSCondition(OperatingSystems.Windows)]
     public void OvTest_FailingStatusThrows()
     {
-        var exception = Assert.ThrowsExactly<OvStatusException>(() => Ov.Status.GENERAL_ERROR.Ok());
+        var exception = Assert.ThrowsExactly<OvStatusException>(() => Status.GENERAL_ERROR.Ok());
 
-        Assert.AreEqual(Ov.Status.GENERAL_ERROR, exception.Status);
+        Assert.AreEqual(Status.GENERAL_ERROR, exception.Status);
         StringAssert.Contains(exception.Message, "general error");
     }
 
@@ -34,31 +35,31 @@ public unsafe class OvTest
     {
         var modelPath = Path.Combine(AppContext.BaseDirectory, TestModelFileName);
         Assert.IsTrue(File.Exists(modelPath), $"Missing model at '{modelPath}'.");
-        Ov.CoreHandle core = default;
-        Ov.CompiledModelHandle compiledModel = default;
-        Ov.InferRequestHandle inferRequest = default;
-        Ov.TensorHandle inputTensor = default;
-        Ov.TensorHandle outputTensor = default;
-        Ov.Shape inputShape = default;
-        Ov.Shape outputShape = default;
+        CoreHandle core = default;
+        CompiledModelHandle compiledModel = default;
+        InferRequestHandle inferRequest = default;
+        TensorHandle inputTensor = default;
+        TensorHandle outputTensor = default;
+        Shape inputShape = default;
+        Shape outputShape = default;
         try
         {
-            Ov.ov_core_create(out core).Ok();
-            Ov.ov_core_compile_model_from_file(core, modelPath, "CPU", 0, out compiledModel).Ok();
-            Ov.ov_compiled_model_create_infer_request(compiledModel, out inferRequest).Ok();
-            Ov.ov_infer_request_get_input_tensor(inferRequest, out inputTensor).Ok();
-            Ov.ov_tensor_get_shape(inputTensor, out inputShape).Ok();
+            ov_core_create(out core).Ok();
+            ov_core_compile_model_from_file(core, modelPath, "CPU", 0, out compiledModel).Ok();
+            ov_compiled_model_create_infer_request(compiledModel, out inferRequest).Ok();
+            ov_infer_request_get_input_tensor(inferRequest, out inputTensor).Ok();
+            ov_tensor_get_shape(inputTensor, out inputShape).Ok();
             TraceShape("Input", inputShape.Span);
             var inputLength = GetElementCount(inputShape.Span);
-            Ov.ov_tensor_data(inputTensor, out var inputData).Ok();
+            ov_tensor_data(inputTensor, out var inputData).Ok();
             new Span<float>(inputData.ToPointer(), inputLength).Clear();
-            Ov.ov_infer_request_set_input_tensor(inferRequest, inputTensor).Ok();
-            Ov.ov_infer_request_infer(inferRequest).Ok();
-            Ov.ov_infer_request_get_output_tensor(inferRequest, out outputTensor).Ok();
-            Ov.ov_tensor_get_shape(outputTensor, out outputShape).Ok();
+            ov_infer_request_set_input_tensor(inferRequest, inputTensor).Ok();
+            ov_infer_request_infer(inferRequest).Ok();
+            ov_infer_request_get_output_tensor(inferRequest, out outputTensor).Ok();
+            ov_tensor_get_shape(outputTensor, out outputShape).Ok();
             TraceShape("Output", outputShape.Span);
             var outputLength = GetElementCount(outputShape.Span);
-            Ov.ov_tensor_data(outputTensor, out var outputData).Ok();
+            ov_tensor_data(outputTensor, out var outputData).Ok();
             var values = new ReadOnlySpan<float>(outputData.ToPointer(), outputLength);
             foreach (var value in values)
             {
@@ -69,31 +70,31 @@ public unsafe class OvTest
         {
             if (outputShape.Dimensions != null)
             {
-                Ov.ov_shape_free(ref outputShape).Ok();
+                ov_shape_free(ref outputShape).Ok();
             }
             if (inputShape.Dimensions != null)
             {
-                Ov.ov_shape_free(ref inputShape).Ok();
+                ov_shape_free(ref inputShape).Ok();
             }
             if (outputTensor.Value != 0)
             {
-                Ov.ov_tensor_free(outputTensor);
+                ov_tensor_free(outputTensor);
             }
             if (inputTensor.Value != 0)
             {
-                Ov.ov_tensor_free(inputTensor);
+                ov_tensor_free(inputTensor);
             }
             if (inferRequest.Value != 0)
             {
-                Ov.ov_infer_request_free(inferRequest);
+                ov_infer_request_free(inferRequest);
             }
             if (compiledModel.Value != 0)
             {
-                Ov.ov_compiled_model_free(compiledModel);
+                ov_compiled_model_free(compiledModel);
             }
             if (core.Value != 0)
             {
-                Ov.ov_core_free(core);
+                ov_core_free(core);
             }
         }
     }
