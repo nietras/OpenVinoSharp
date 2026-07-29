@@ -240,7 +240,7 @@ namespace OpenVinoSharp
         protected override bool ReleaseHandle() { }
     }
     [System.Serializable]
-    public sealed class OvStatusException : System.Exception
+    public sealed class OvStatusException : OpenVinoSharp.OvException
     {
         public OvStatusException(OpenVinoSharp.Ov.Status status, string message) { }
         public OpenVinoSharp.Ov.Status Status { get; }
@@ -249,6 +249,8 @@ namespace OpenVinoSharp
     {
         public System.IntPtr Data { get; }
         public override bool IsInvalid { get; }
+        public System.Span<T> GetData<T>()
+            where T :  unmanaged { }
         public OpenVinoSharp.OvShape GetShape() { }
         protected override bool ReleaseHandle() { }
     }

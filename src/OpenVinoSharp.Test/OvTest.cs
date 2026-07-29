@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace OpenVinoSharp.Test;
@@ -9,11 +8,13 @@ namespace OpenVinoSharp.Test;
 [TestClass]
 public unsafe class OvTest
 {
+    const string TestModelFileName = "mnist-8.onnx";
+
     [TestMethod]
     [OSCondition(OperatingSystems.Windows)]
-    public void OvTest_MnistInferenceSmoke()
+    public void OvTest_Raw_MnistInferenceSmoke()
     {
-        var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+        var modelPath = Path.Combine(AppContext.BaseDirectory, TestModelFileName);
         Assert.IsTrue(File.Exists(modelPath), $"Missing model at '{modelPath}'.");
         Ov.CoreHandle core = default;
         Ov.CompiledModelHandle compiledModel = default;
@@ -24,22 +25,22 @@ public unsafe class OvTest
         Ov.Shape outputShape = default;
         try
         {
-            AssertStatus(Ov.ov_core_create(out core));
-            AssertStatus(Ov.ov_core_compile_model_from_file(core, modelPath, "CPU", 0, out compiledModel));
-            AssertStatus(Ov.ov_compiled_model_create_infer_request(compiledModel, out inferRequest));
-            AssertStatus(Ov.ov_infer_request_get_input_tensor(inferRequest, out inputTensor));
-            AssertStatus(Ov.ov_tensor_get_shape(inputTensor, out inputShape));
+            Ov.ov_core_create(out core).Ok();
+            Ov.ov_core_compile_model_from_file(core, modelPath, "CPU", 0, out compiledModel).Ok();
+            Ov.ov_compiled_model_create_infer_request(compiledModel, out inferRequest).Ok();
+            Ov.ov_infer_request_get_input_tensor(inferRequest, out inputTensor).Ok();
+            Ov.ov_tensor_get_shape(inputTensor, out inputShape).Ok();
             TraceShape("Input", inputShape.Span);
             var inputLength = GetElementCount(inputShape.Span);
-            AssertStatus(Ov.ov_tensor_data(inputTensor, out var inputData));
+            Ov.ov_tensor_data(inputTensor, out var inputData).Ok();
             new Span<float>(inputData.ToPointer(), inputLength).Clear();
-            AssertStatus(Ov.ov_infer_request_set_input_tensor(inferRequest, inputTensor));
-            AssertStatus(Ov.ov_infer_request_infer(inferRequest));
-            AssertStatus(Ov.ov_infer_request_get_output_tensor(inferRequest, out outputTensor));
-            AssertStatus(Ov.ov_tensor_get_shape(outputTensor, out outputShape));
+            Ov.ov_infer_request_set_input_tensor(inferRequest, inputTensor).Ok();
+            Ov.ov_infer_request_infer(inferRequest).Ok();
+            Ov.ov_infer_request_get_output_tensor(inferRequest, out outputTensor).Ok();
+            Ov.ov_tensor_get_shape(outputTensor, out outputShape).Ok();
             TraceShape("Output", outputShape.Span);
             var outputLength = GetElementCount(outputShape.Span);
-            AssertStatus(Ov.ov_tensor_data(outputTensor, out var outputData));
+            Ov.ov_tensor_data(outputTensor, out var outputData).Ok();
             var values = new ReadOnlySpan<float>(outputData.ToPointer(), outputLength);
             foreach (var value in values)
             {
@@ -50,11 +51,11 @@ public unsafe class OvTest
         {
             if (outputShape.Dimensions != null)
             {
-                Assert.AreEqual(Ov.Status.Ok, Ov.ov_shape_free(ref outputShape));
+                Ov.ov_shape_free(ref outputShape).Ok();
             }
             if (inputShape.Dimensions != null)
             {
-                Assert.AreEqual(Ov.Status.Ok, Ov.ov_shape_free(ref inputShape));
+                Ov.ov_shape_free(ref inputShape).Ok();
             }
             if (outputTensor.Value != 0)
             {
@@ -81,9 +82,9 @@ public unsafe class OvTest
 
     [TestMethod]
     [OSCondition(OperatingSystems.Windows)]
-    public void OvModel_MnistInferenceSmoke()
+    public void OvTest_OvModel_MnistInferenceSmoke()
     {
-        var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+        var modelPath = Path.Combine(AppContext.BaseDirectory, TestModelFileName);
         using var core = new OvCore();
         using var model = core.ReadModel(modelPath);
         using var compiledModel = model.Compile();
@@ -91,20 +92,17 @@ public unsafe class OvTest
         using var inputTensor = inferRequest.GetInputTensor();
         using var inputShape = inputTensor.GetShape();
         TraceShape("Input", inputShape.Span);
-        new Span<float>(inputTensor.Data.ToPointer(), GetElementCount(inputShape.Span)).Clear();
+        var dataSpan = inputTensor.GetData<float>();
+        dataSpan.Clear();
         inferRequest.Infer();
         using var outputTensor = inferRequest.GetOutputTensor();
         using var outputShape = outputTensor.GetShape();
         TraceShape("Output", outputShape.Span);
-        var values = new ReadOnlySpan<float>(outputTensor.Data.ToPointer(), GetElementCount(outputShape.Span));
+        var values = outputTensor.GetData<float>();
         foreach (var value in values)
         {
             Assert.IsTrue(float.IsFinite(value));
         }
-    }
-    private static void AssertStatus(Ov.Status status)
-    {
-        Assert.AreEqual(Ov.Status.Ok, status, Marshal.PtrToStringUTF8(Ov.ov_get_last_err_msg()));
     }
     private static void TraceShape(string name, ReadOnlySpan<long> shape)
     {

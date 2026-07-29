@@ -3,10 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace OpenVinoSharp;
 
-public sealed class OvTensor : SafeHandle
+public sealed unsafe class OvTensor : SafeHandle
 {
     readonly OvInferRequest _inferRequest;
     readonly IntPtr _data;
+    readonly int _length;
 
     internal OvTensor(OvInferRequest inferRequest, Ov.TensorHandle tensor)
         : base(nint.Zero, ownsHandle: true)
@@ -15,9 +16,33 @@ public sealed class OvTensor : SafeHandle
         _inferRequest = inferRequest;
         Ov.ov_tensor_data(tensor, out _data).Ok();
         SetHandle(tensor.Value);
+        Ov.Shape shape = default;
+        try
+        {
+            Ov.ov_tensor_get_shape(tensor, out shape).Ok();
+            long length = 1;
+            foreach (var dimension in shape.Span)
+            {
+                checked
+                {
+                    length *= dimension;
+                }
+            }
+            _length = checked((int)length);
+        }
+        finally
+        {
+            if (shape.Dimensions != null)
+            {
+                Ov.ov_shape_free(ref shape).Ok();
+            }
+        }
     }
 
     public IntPtr Data => _data;
+
+    public Span<T> GetData<T>() where T : unmanaged =>
+        new(_data.ToPointer(), _length);
 
     public OvShape GetShape()
     {

@@ -6,7 +6,7 @@ namespace OpenVinoSharp;
 public class OvException(string message) : Exception(message);
 
 [Serializable]
-public sealed class OvStatusException(Ov.Status status, string message) : Exception(message)
+public sealed class OvStatusException(Ov.Status status, string message) : OvException(message)
 {
     public Ov.Status Status { get; } = status;
 }
