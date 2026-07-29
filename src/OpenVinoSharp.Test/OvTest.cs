@@ -27,7 +27,7 @@ public unsafe class OvTest
             AssertStatus(Ov.ov_compiled_model_create_infer_request(compiledModel, out inferRequest));
             AssertStatus(Ov.ov_infer_request_get_input_tensor(inferRequest, out inputTensor));
             AssertStatus(Ov.ov_tensor_data(inputTensor, out var inputData));
-            ((float*)inputData)[0] = 1.0f;
+            ((float*)inputData)[0] = 1.0f / byte.MaxValue;
             AssertStatus(Ov.ov_infer_request_set_input_tensor(inferRequest, inputTensor));
             AssertStatus(Ov.ov_infer_request_infer(inferRequest));
             AssertStatus(Ov.ov_infer_request_get_output_tensor(inferRequest, out outputTensor));
