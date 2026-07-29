@@ -8,7 +8,7 @@ public static partial class Ov
 {
     const string LibraryName = "openvino_c";
 
-    public static void Empty() { }
+    internal static void Empty() { }
 
     public readonly record struct CoreHandle(nint Value);
     public readonly record struct ModelHandle(nint Value);

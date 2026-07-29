@@ -64,7 +64,6 @@ namespace OpenVinoSharp
 {
     public static class Ov
     {
-        public static void Empty() { }
         [System.Runtime.CompilerServices.SkipLocalsInit]
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static OpenVinoSharp.Ov.Status ov_compiled_model_create_infer_request(OpenVinoSharp.Ov.CompiledModelHandle compiledModel, out OpenVinoSharp.Ov.InferRequestHandle inferRequest) { }
