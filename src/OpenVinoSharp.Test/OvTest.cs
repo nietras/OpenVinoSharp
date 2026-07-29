@@ -9,13 +9,10 @@ namespace OpenVinoSharp.Test;
 public unsafe class OvTest
 {
     [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
     public void OvTest_MnistInferenceSmoke()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            Assert.Inconclusive("The configured OpenVINO CPU runtime package supports Windows only.");
-        }
-        string modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+        var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
         Assert.IsTrue(File.Exists(modelPath), $"Missing model at '{modelPath}'.");
         Ov.CoreHandle core = default;
         Ov.CompiledModelHandle compiledModel = default;
@@ -29,15 +26,15 @@ public unsafe class OvTest
             AssertStatus(Ov.ov_core_compile_model_from_file(core, modelPath, "CPU", 0, out compiledModel));
             AssertStatus(Ov.ov_compiled_model_create_infer_request(compiledModel, out inferRequest));
             AssertStatus(Ov.ov_infer_request_get_input_tensor(inferRequest, out inputTensor));
-            AssertStatus(Ov.ov_tensor_data(inputTensor, out nint inputData));
+            AssertStatus(Ov.ov_tensor_data(inputTensor, out var inputData));
             ((float*)inputData)[0] = 1.0f;
             AssertStatus(Ov.ov_infer_request_set_input_tensor(inferRequest, inputTensor));
             AssertStatus(Ov.ov_infer_request_infer(inferRequest));
             AssertStatus(Ov.ov_infer_request_get_output_tensor(inferRequest, out outputTensor));
             AssertStatus(Ov.ov_tensor_get_shape(outputTensor, out outputShape));
-            int outputLength = GetElementCount(outputShape);
-            AssertStatus(Ov.ov_tensor_data(outputTensor, out nint outputData));
-            foreach (float value in new ReadOnlySpan<float>(outputData.ToPointer(), outputLength))
+            var outputLength = GetElementCount(outputShape);
+            AssertStatus(Ov.ov_tensor_data(outputTensor, out var outputData));
+            foreach (var value in new ReadOnlySpan<float>(outputData.ToPointer(), outputLength))
             {
                 Assert.IsTrue(float.IsFinite(value));
             }
@@ -77,7 +74,7 @@ public unsafe class OvTest
     private static int GetElementCount(Ov.Shape shape)
     {
         long count = 1;
-        foreach (long dimension in new ReadOnlySpan<long>(shape.Dimensions, checked((int)shape.Rank)))
+        foreach (var dimension in new ReadOnlySpan<long>(shape.Dimensions, checked((int)shape.Rank)))
         {
             checked
             {
