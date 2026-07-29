@@ -164,6 +164,7 @@ namespace OpenVinoSharp
         {
             public unsafe long* Dimensions;
             public long Rank;
+            public System.ReadOnlySpan<long> Span { get; }
         }
         public enum Status
         {
@@ -191,6 +192,65 @@ namespace OpenVinoSharp
             public TensorHandle(nint Value) { }
             public System.IntPtr Value { get; init; }
         }
+        extension(OpenVinoSharp.Ov.Status result)
+        {
+            public void Ok() { }
+            public bool IsOk() { }
+            public bool IsError() { }
+            public string ToStringFast() { }
+        }
+    }
+    public sealed class OvCompiledModel : System.Runtime.InteropServices.SafeHandle
+    {
+        public override bool IsInvalid { get; }
+        public OpenVinoSharp.OvInferRequest CreateInferRequest() { }
+        protected override bool ReleaseHandle() { }
+    }
+    public sealed class OvCore : System.Runtime.InteropServices.SafeHandle
+    {
+        public OvCore() { }
+        public override bool IsInvalid { get; }
+        public OpenVinoSharp.OvModel ReadModel(string modelPath, string? binPath = null) { }
+        protected override bool ReleaseHandle() { }
+    }
+    [System.Serializable]
+    public class OvException : System.Exception
+    {
+        public OvException(string message) { }
+    }
+    public sealed class OvInferRequest : System.Runtime.InteropServices.SafeHandle
+    {
+        public override bool IsInvalid { get; }
+        public OpenVinoSharp.OvTensor GetInputTensor() { }
+        public OpenVinoSharp.OvTensor GetOutputTensor() { }
+        public void Infer() { }
+        protected override bool ReleaseHandle() { }
+    }
+    public sealed class OvModel : System.Runtime.InteropServices.SafeHandle
+    {
+        public override bool IsInvalid { get; }
+        public OpenVinoSharp.OvCompiledModel Compile(string deviceName = "CPU") { }
+        protected override bool ReleaseHandle() { }
+    }
+    public sealed class OvShape : System.Runtime.InteropServices.SafeHandle
+    {
+        public override bool IsInvalid { get; }
+        public long Rank { get; }
+        public System.ReadOnlySpan<long> Span { get; }
+        protected override bool ReleaseHandle() { }
+    }
+    [System.Serializable]
+    public sealed class OvStatusException : System.Exception
+    {
+        public OvStatusException(OpenVinoSharp.Ov.Status status, string message) { }
+        public OpenVinoSharp.Ov.Status Status { get; }
+    }
+    public sealed class OvTensor : System.Runtime.InteropServices.SafeHandle
+    {
+        public System.IntPtr Data { get; }
+        public override bool IsInvalid { get; }
+        public OpenVinoSharp.OvShape GetShape() { }
+        protected override bool ReleaseHandle() { }
     }
 }
 ```

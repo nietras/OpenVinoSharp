@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace OpenVinoSharp;
@@ -6,23 +6,18 @@ namespace OpenVinoSharp;
 public sealed class OvTensor : SafeHandle
 {
     readonly OvInferRequest _inferRequest;
+    readonly IntPtr _data;
 
     internal OvTensor(OvInferRequest inferRequest, Ov.TensorHandle tensor)
         : base(nint.Zero, ownsHandle: true)
     {
         ArgumentNullException.ThrowIfNull(inferRequest);
         _inferRequest = inferRequest;
+        Ov.ov_tensor_data(tensor, out _data).Ok();
         SetHandle(tensor.Value);
     }
 
-    public nint Data
-    {
-        get
-        {
-            Ov.ov_tensor_data(new Ov.TensorHandle(handle), out var data).Ok();
-            return data;
-        }
-    }
+    public IntPtr Data => _data;
 
     public OvShape GetShape()
     {
