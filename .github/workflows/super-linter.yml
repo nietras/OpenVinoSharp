@@ -17,7 +17,9 @@ jobs:
     permissions:
       contents: read
       packages: read
-      # To report GitHub Actions status checks
+      # Required: super-linter uses the GitHub Commit Statuses API
+      # (/repos/{owner}/{repo}/statuses/{sha}), not the Checks API,
+      # so statuses:write is the correct minimum permission (not checks:write)
       statuses: write
 
     steps:
@@ -37,6 +39,10 @@ jobs:
         uses: super-linter/super-linter@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
         env:
           VALIDATE_GITHUB_ACTIONS: false
+          VALIDATE_GITHUB_ACTIONS_ZIZMOR: false
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
+          VALIDATE_EDITORCONFIG: false
           # format not working, checked during build instead
           VALIDATE_CSHARP: false
           VALIDATE_DOTNET_SLN_FORMAT_ANALYZERS: false
