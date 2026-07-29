@@ -14,7 +14,7 @@
          https://github.com/dotnet/runtimelab/issues/1269 ([NativeAOT] Best way to track down app size bloat?) 
          https://github.com/dotnet/runtime/blob/main/src/coreclr/nativeaot/docs/optimizing.md (IlcInstructionSet, IlcMaxVectorTBitWidth)
      -->
-    <IlcInstructionSet Condition="$(RuntimeIdentifier) == 'win-x64'" >native</IlcInstructionSet>
+    <IlcInstructionSet Condition="$(RuntimeIdentifier) == 'win-x64'">native</IlcInstructionSet>
     <IlcInvariantGlobalization>true</IlcInvariantGlobalization>
     <IlcDisableReflection>true</IlcDisableReflection>
     <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
@@ -27,6 +27,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OpenVinoSharp\OpenVinoSharp.csproj" />
