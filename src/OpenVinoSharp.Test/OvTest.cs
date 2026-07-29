@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace OpenVinoSharp.Test;
@@ -9,6 +10,13 @@ namespace OpenVinoSharp.Test;
 public unsafe class OvTest
 {
     const string TestModelFileName = "mnist-8.onnx";
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void OvTest_GetErrorInfo()
+    {
+        Assert.AreEqual("general error", Marshal.PtrToStringUTF8(Ov.ov_get_error_info(Ov.Status.GENERAL_ERROR)));
+    }
 
     [TestMethod]
     [OSCondition(OperatingSystems.Windows)]

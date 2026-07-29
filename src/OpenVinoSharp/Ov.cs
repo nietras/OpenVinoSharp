@@ -26,66 +26,66 @@ public static partial class Ov
 
     public enum Status
     {
-        Ok = 0,
-        GeneralError = -1,
-        NotImplemented = -2,
-        NetworkNotLoaded = -3,
-        ParameterMismatch = -4,
-        NotFound = -5,
-        OutOfBounds = -6,
-        Unexpected = -7,
-        RequestBusy = -8,
-        ResultNotReady = -9,
-        NotAllocated = -10,
-        InferNotStarted = -11,
-        NetworkNotRead = -12,
-        InferCancelled = -13,
-        InvalidCParameter = -14,
-        UnknownCError = -15,
-        NotImplementedCMethod = -16,
-        UnknownException = -17,
+        OK = 0,
+        GENERAL_ERROR = -1,
+        NOT_IMPLEMENTED = -2,
+        NETWORK_NOT_LOADED = -3,
+        PARAMETER_MISMATCH = -4,
+        NOT_FOUND = -5,
+        OUT_OF_BOUNDS = -6,
+        UNEXPECTED = -7,
+        REQUEST_BUSY = -8,
+        RESULT_NOT_READY = -9,
+        NOT_ALLOCATED = -10,
+        INFER_NOT_STARTED = -11,
+        NETWORK_NOT_READ = -12,
+        INFER_CANCELLED = -13,
+        INVALID_C_PARAM = -14,
+        UNKNOWN_C_ERROR = -15,
+        NOT_IMPLEMENT_C_METHOD = -16,
+        UNKNOW_EXCEPTION = -17,
     }
 
     extension(Status result)
     {
         public void Ok()
         {
-            if (result != Status.Ok)
+            if (result != Status.OK)
             {
                 Throws.Throw(result, result.ToStringFast());
             }
         }
-        public bool IsOk() => result == Status.Ok;
-        public bool IsError() => result != Status.Ok;
+        public bool IsOk() => result == Status.OK;
+        public bool IsError() => result != Status.OK;
         public string ToStringFast() => result switch
         {
-            Status.Ok => nameof(Status.Ok),
-            Status.GeneralError => nameof(Status.GeneralError),
-            Status.NotImplemented => nameof(Status.NotImplemented),
-            Status.NetworkNotLoaded => nameof(Status.NetworkNotLoaded),
-            Status.ParameterMismatch => nameof(Status.ParameterMismatch),
-            Status.NotFound => nameof(Status.NotFound),
-            Status.OutOfBounds => nameof(Status.OutOfBounds),
-            Status.Unexpected => nameof(Status.Unexpected),
-            Status.RequestBusy => nameof(Status.RequestBusy),
-            Status.ResultNotReady => nameof(Status.ResultNotReady),
-            Status.NotAllocated => nameof(Status.NotAllocated),
-            Status.InferNotStarted => nameof(Status.InferNotStarted),
-            Status.NetworkNotRead => nameof(Status.NetworkNotRead),
-            Status.InferCancelled => nameof(Status.InferCancelled),
-            Status.InvalidCParameter => nameof(Status.InvalidCParameter),
-            Status.UnknownCError => nameof(Status.UnknownCError),
-            Status.NotImplementedCMethod => nameof(Status.NotImplementedCMethod),
-            Status.UnknownException => nameof(Status.UnknownException),
+            Status.OK => nameof(Status.OK),
+            Status.GENERAL_ERROR => nameof(Status.GENERAL_ERROR),
+            Status.NOT_IMPLEMENTED => nameof(Status.NOT_IMPLEMENTED),
+            Status.NETWORK_NOT_LOADED => nameof(Status.NETWORK_NOT_LOADED),
+            Status.PARAMETER_MISMATCH => nameof(Status.PARAMETER_MISMATCH),
+            Status.NOT_FOUND => nameof(Status.NOT_FOUND),
+            Status.OUT_OF_BOUNDS => nameof(Status.OUT_OF_BOUNDS),
+            Status.UNEXPECTED => nameof(Status.UNEXPECTED),
+            Status.REQUEST_BUSY => nameof(Status.REQUEST_BUSY),
+            Status.RESULT_NOT_READY => nameof(Status.RESULT_NOT_READY),
+            Status.NOT_ALLOCATED => nameof(Status.NOT_ALLOCATED),
+            Status.INFER_NOT_STARTED => nameof(Status.INFER_NOT_STARTED),
+            Status.NETWORK_NOT_READ => nameof(Status.NETWORK_NOT_READ),
+            Status.INFER_CANCELLED => nameof(Status.INFER_CANCELLED),
+            Status.INVALID_C_PARAM => nameof(Status.INVALID_C_PARAM),
+            Status.UNKNOWN_C_ERROR => nameof(Status.UNKNOWN_C_ERROR),
+            Status.NOT_IMPLEMENT_C_METHOD => nameof(Status.NOT_IMPLEMENT_C_METHOD),
+            Status.UNKNOW_EXCEPTION => nameof(Status.UNKNOW_EXCEPTION),
             _ => $"Unknown:{(int)result}",
         };
     }
 
     public enum ElementType
     {
-        Dynamic = 0,
-        Boolean,
-        Bf16,
+        DYNAMIC = 0,
+        BOOLEAN,
+        BF16,
         F16,
         F32,
         F64,
@@ -103,10 +103,10 @@ public static partial class Ov
         U16,
         U32,
         U64,
-        Nf4,
+        NF4,
         F8E4M3,
         F8E5M3,
-        String,
+        STRING,
         F4E2M1,
         F8E8M0,
     }
@@ -148,6 +148,8 @@ public static partial class Ov
     public static partial void ov_tensor_free(TensorHandle tensor);
     [LibraryImport(LibraryName)]
     public static partial Status ov_shape_free(ref Shape shape);
+    [LibraryImport(LibraryName)]
+    public static partial nint ov_get_error_info(Status status);
     [LibraryImport(LibraryName)]
     public static partial nint ov_get_last_err_msg();
 }
