@@ -29,16 +29,16 @@ public unsafe class OvTest
             AssertStatus(Ov.ov_compiled_model_create_infer_request(compiledModel, out inferRequest));
             AssertStatus(Ov.ov_infer_request_get_input_tensor(inferRequest, out inputTensor));
             AssertStatus(Ov.ov_tensor_get_shape(inputTensor, out inputShape));
-            TraceShape("Input", inputShape);
-            var inputLength = GetElementCount(inputShape);
+            TraceShape("Input", inputShape.Span);
+            var inputLength = GetElementCount(inputShape.Span);
             AssertStatus(Ov.ov_tensor_data(inputTensor, out var inputData));
             new Span<float>(inputData.ToPointer(), inputLength).Clear();
             AssertStatus(Ov.ov_infer_request_set_input_tensor(inferRequest, inputTensor));
             AssertStatus(Ov.ov_infer_request_infer(inferRequest));
             AssertStatus(Ov.ov_infer_request_get_output_tensor(inferRequest, out outputTensor));
             AssertStatus(Ov.ov_tensor_get_shape(outputTensor, out outputShape));
-            TraceShape("Output", outputShape);
-            var outputLength = GetElementCount(outputShape);
+            TraceShape("Output", outputShape.Span);
+            var outputLength = GetElementCount(outputShape.Span);
             AssertStatus(Ov.ov_tensor_data(outputTensor, out var outputData));
             var values = new ReadOnlySpan<float>(outputData.ToPointer(), outputLength);
             foreach (var value in values)
@@ -89,45 +89,31 @@ public unsafe class OvTest
         using var compiledModel = model.Compile();
         using var inferRequest = compiledModel.CreateInferRequest();
         using var inputTensor = inferRequest.GetInputTensor();
-        var inputShape = inputTensor.GetShape();
-        try
+        using var inputShape = inputTensor.GetShape();
+        TraceShape("Input", inputShape.Span);
+        new Span<float>(inputTensor.Data.ToPointer(), GetElementCount(inputShape.Span)).Clear();
+        inferRequest.Infer();
+        using var outputTensor = inferRequest.GetOutputTensor();
+        using var outputShape = outputTensor.GetShape();
+        TraceShape("Output", outputShape.Span);
+        var values = new ReadOnlySpan<float>(outputTensor.Data.ToPointer(), GetElementCount(outputShape.Span));
+        foreach (var value in values)
         {
-            TraceShape("Input", inputShape);
-            new Span<float>(inputTensor.Data.ToPointer(), GetElementCount(inputShape)).Clear();
-            inferRequest.Infer();
-            using var outputTensor = inferRequest.GetOutputTensor();
-            var outputShape = outputTensor.GetShape();
-            try
-            {
-                TraceShape("Output", outputShape);
-                var values = new ReadOnlySpan<float>(outputTensor.Data.ToPointer(), GetElementCount(outputShape));
-                foreach (var value in values)
-                {
-                    Assert.IsTrue(float.IsFinite(value));
-                }
-            }
-            finally
-            {
-                Ov.ov_shape_free(ref outputShape).Ok();
-            }
-        }
-        finally
-        {
-            Ov.ov_shape_free(ref inputShape).Ok();
+            Assert.IsTrue(float.IsFinite(value));
         }
     }
     private static void AssertStatus(Ov.Status status)
     {
         Assert.AreEqual(Ov.Status.Ok, status, Marshal.PtrToStringUTF8(Ov.ov_get_last_err_msg()));
     }
-    private static void TraceShape(string name, Ov.Shape shape)
+    private static void TraceShape(string name, ReadOnlySpan<long> shape)
     {
-        Trace.WriteLine($"{name} shape: [{string.Join(", ", shape.Span.ToArray())}]");
+        Trace.WriteLine($"{name} shape: [{string.Join(", ", shape.ToArray())}]");
     }
-    private static int GetElementCount(Ov.Shape shape)
+    private static int GetElementCount(ReadOnlySpan<long> shape)
     {
         long count = 1;
-        foreach (var dimension in new ReadOnlySpan<long>(shape.Dimensions, checked((int)shape.Rank)))
+        foreach (var dimension in shape)
         {
             checked
             {

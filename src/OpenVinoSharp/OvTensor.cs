@@ -24,10 +24,10 @@ public sealed class OvTensor : SafeHandle
         }
     }
 
-    public Ov.Shape GetShape()
+    public OvShape GetShape()
     {
         Ov.ov_tensor_get_shape(new Ov.TensorHandle(handle), out var shape).Ok();
-        return shape;
+        return new OvShape(shape);
     }
 
     public override bool IsInvalid => handle == nint.Zero;
