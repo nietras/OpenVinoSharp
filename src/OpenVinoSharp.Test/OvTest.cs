@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -104,11 +104,13 @@ public unsafe class OvTest
             Assert.IsTrue(float.IsFinite(value));
         }
     }
-    private static void TraceShape(string name, ReadOnlySpan<long> shape)
+
+    static void TraceShape(string name, ReadOnlySpan<long> shape)
     {
         Trace.WriteLine($"{name} shape: [{string.Join(", ", shape.ToArray())}]");
     }
-    private static int GetElementCount(ReadOnlySpan<long> shape)
+
+    static int GetElementCount(ReadOnlySpan<long> shape)
     {
         long count = 1;
         foreach (var dimension in shape)
