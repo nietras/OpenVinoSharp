@@ -34,7 +34,8 @@ public unsafe class OvTest
             AssertStatus(Ov.ov_tensor_get_shape(outputTensor, out outputShape));
             var outputLength = GetElementCount(outputShape);
             AssertStatus(Ov.ov_tensor_data(outputTensor, out var outputData));
-            foreach (var value in new ReadOnlySpan<float>(outputData.ToPointer(), outputLength))
+            var values = new ReadOnlySpan<float>(outputData.ToPointer(), outputLength);
+            foreach (var value in values)
             {
                 Assert.IsTrue(float.IsFinite(value));
             }
