@@ -32,12 +32,6 @@ jobs:
             cpu: "AMD.EPYC.7763"
           - os: ubuntu-latest
             cpu: "AMD.EPYC.7763"
-          - os: macos-latest
-            cpu: "Apple.M1.(Virtual)"
-          - os: windows-11-arm
-            cpu: "Cobalt.100"
-          - os: ubuntu-24.04-arm
-            cpu: "Cobalt.100"
 
     runs-on: ${{ matrix.config.os }}
 
