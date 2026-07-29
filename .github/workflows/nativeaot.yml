@@ -47,4 +47,4 @@ jobs:
           path: ${{ env.ArtifactsDirectory }}
       - name: Run Tester
         shell: pwsh
-        run: ./artifacts/bin/SimdSharp.Tester/release_win-x64/native/SimdSharp.Tester.exe
+        run: ./artifacts/bin/OpenVinoSharp.Tester/release_win-x64/native/OpenVinoSharp.Tester.exe
