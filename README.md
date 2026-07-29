@@ -84,6 +84,8 @@ namespace OpenVinoSharp
         [System.Runtime.InteropServices.LibraryImport("openvino_c", StringMarshalling=System.Runtime.InteropServices.StringMarshalling.Utf8)]
         public static OpenVinoSharp.Ov.Status ov_core_read_model(OpenVinoSharp.Ov.CoreHandle core, string modelPath, string? binPath, out OpenVinoSharp.Ov.ModelHandle model) { }
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
+        public static nint ov_get_error_info(OpenVinoSharp.Ov.Status status) { }
+        [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static nint ov_get_last_err_msg() { }
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static void ov_infer_request_free(OpenVinoSharp.Ov.InferRequestHandle inferRequest) { }
@@ -122,9 +124,9 @@ namespace OpenVinoSharp
         }
         public enum ElementType
         {
-            Dynamic = 0,
-            Boolean = 1,
-            Bf16 = 2,
+            DYNAMIC = 0,
+            BOOLEAN = 1,
+            BF16 = 2,
             F16 = 3,
             F32 = 4,
             F64 = 5,
@@ -142,10 +144,10 @@ namespace OpenVinoSharp
             U16 = 17,
             U32 = 18,
             U64 = 19,
-            Nf4 = 20,
+            NF4 = 20,
             F8E4M3 = 21,
             F8E5M3 = 22,
-            String = 23,
+            STRING = 23,
             F4E2M1 = 24,
             F8E8M0 = 25,
         }
@@ -167,24 +169,24 @@ namespace OpenVinoSharp
         }
         public enum Status
         {
-            Ok = 0,
-            GeneralError = -1,
-            NotImplemented = -2,
-            NetworkNotLoaded = -3,
-            ParameterMismatch = -4,
-            NotFound = -5,
-            OutOfBounds = -6,
-            Unexpected = -7,
-            RequestBusy = -8,
-            ResultNotReady = -9,
-            NotAllocated = -10,
-            InferNotStarted = -11,
-            NetworkNotRead = -12,
-            InferCancelled = -13,
-            InvalidCParameter = -14,
-            UnknownCError = -15,
-            NotImplementedCMethod = -16,
-            UnknownException = -17,
+            OK = 0,
+            GENERAL_ERROR = -1,
+            NOT_IMPLEMENTED = -2,
+            NETWORK_NOT_LOADED = -3,
+            PARAMETER_MISMATCH = -4,
+            NOT_FOUND = -5,
+            OUT_OF_BOUNDS = -6,
+            UNEXPECTED = -7,
+            REQUEST_BUSY = -8,
+            RESULT_NOT_READY = -9,
+            NOT_ALLOCATED = -10,
+            INFER_NOT_STARTED = -11,
+            NETWORK_NOT_READ = -12,
+            INFER_CANCELLED = -13,
+            INVALID_C_PARAM = -14,
+            UNKNOWN_C_ERROR = -15,
+            NOT_IMPLEMENT_C_METHOD = -16,
+            UNKNOW_EXCEPTION = -17,
         }
         public readonly struct TensorHandle : System.IEquatable<OpenVinoSharp.Ov.TensorHandle>
         {
