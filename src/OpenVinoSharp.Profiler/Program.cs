@@ -17,12 +17,16 @@ const int WarmupCount = 3;
 const int MinimumIterations = 10;
 const int ProfilingSamples = 10;
 const double TargetRunDurationMilliseconds = 1000;
-TimeSpan concurrentTestDuration = TimeSpan.FromSeconds(1);
+var concurrentTestDuration = TimeSpan.FromSeconds(1);
 int[] concurrentThreadCountsToTest = [1, 2, 4, 8, 16];
 ProfilingConfiguration[] configurations =
 [
     new("CPU", null, null, false),
-    new("CPU 1*Thread 1*Stream", 1, 1, true),
+    // NOTE: Without -DTHREADING=SEQ custom OpenVino build this is limited to 1
+    //       internal thread and does not use calling thread for inference.
+    //       There does not appear to be a dynamic option directly for calling
+    //       thread execution only.
+    new("CPU 1*Thread 0*Stream", 1, 0, true),
 ];
 
 Action<string> log = message =>
@@ -36,7 +40,8 @@ var modelPaths = Directory.GetFiles(workingDirectory, SearchPattern, SearchOptio
 Array.Sort(modelPaths, StringComparer.Ordinal);
 
 log($"Current directory: '{workingDirectory}'");
-log($"Found {modelPaths.Length} files for '{SearchPattern}': {string.Join(", ", modelPaths.Select(path => $"'{path}'"))}");
+log($"Found {modelPaths.Length} files for '{SearchPattern}': " +
+    $"{string.Join(", ", modelPaths.Select(path => $"'{path}'"))}");
 
 foreach (var modelPath in modelPaths)
 {
@@ -125,22 +130,23 @@ static IReadOnlyList<NodeProfile> RunModel(
     log($"{configuration.Name,-32};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
         $"{elapsedMilliseconds.Count,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
 
-    if (!configuration.EnableProfiling)
+    if (configuration.EnableProfiling)
+    {
+        var nodeNameToProfile = new Dictionary<string, NodeProfile>(StringComparer.Ordinal);
+        for (var sample = 0; sample < ProfilingSamples; ++sample)
+        {
+            inferRequest.Infer();
+            foreach (var profilingInfo in inferRequest.GetProfilingInfo())
+            {
+                nodeNameToProfile.AddOrUpdate(profilingInfo);
+            }
+        }
+        return nodeNameToProfile.Values.ToArray();
+    }
+    else
     {
         return [];
     }
-
-    var nodeNameToProfile = new Dictionary<string, NodeProfile>(StringComparer.Ordinal);
-    for (var sample = 0; sample < ProfilingSamples; ++sample)
-    {
-        inferRequest.Infer();
-        foreach (var profilingInfo in inferRequest.GetProfilingInfo())
-        {
-            nodeNameToProfile.AddOrUpdate(profilingInfo);
-        }
-    }
-
-    return nodeNameToProfile.Values.ToArray();
 }
 
 static void RunModelConcurrent(
@@ -150,17 +156,17 @@ static void RunModelConcurrent(
     TimeSpan duration,
     Action<string> log)
 {
-    using var core = CreateProfilingCore(configuration);
-    using var model = core.ReadModel(modelPath);
-    using var compiledModel = model.Compile(DeviceName);
-
-    using (var warmupRequest = compiledModel.CreateInferRequest())
-    {
-        warmupRequest.Infer();
-    }
-
     foreach (var threadCount in threadCounts)
     {
+        using var core = CreateProfilingCore(configuration);
+        using var model = core.ReadModel(modelPath);
+        using var compiledModel = model.Compile(DeviceName);
+
+        using (var warmupRequest = compiledModel.CreateInferRequest())
+        {
+            warmupRequest.Infer();
+        }
+
         using var barrier = new Barrier(threadCount + 1);
         var iterationsPerThread = new long[threadCount];
         var totalMillisecondsPerThread = new double[threadCount];
@@ -267,22 +273,24 @@ sealed record ProfilingConfiguration(
     string Name,
     int? InferenceThreadCount,
     int? StreamCount,
-    bool EnableProfiling);
-
-sealed class NodeProfile
+    bool EnableProfiling)
 {
-    public NodeProfile(OvProfilingInfo profilingInfo)
-    {
-        NodeName = profilingInfo.NodeName;
-        NodeType = profilingInfo.NodeType;
-        ExecutionType = profilingInfo.ExecutionType;
-        Status = profilingInfo.Status;
-    }
+    public ProfilingConfiguration WithConcurrentStreamCount(int streamCount) =>
+        InferenceThreadCount is null
+            ? this
+            : this with
+            {
+                Name = $"CPU {InferenceThreadCount}*Thread {streamCount}*Stream",
+                StreamCount = streamCount,
+            };
+}
 
-    public string NodeName { get; }
-    public string NodeType { get; }
-    public string ExecutionType { get; }
-    public OvProfilingStatus Status { get; }
+sealed class NodeProfile(OvProfilingInfo profilingInfo)
+{
+    public string NodeName { get; } = profilingInfo.NodeName;
+    public string NodeType { get; } = profilingInfo.NodeType;
+    public string ExecutionType { get; } = profilingInfo.ExecutionType;
+    public OvProfilingStatus Status { get; } = profilingInfo.Status;
     public int CallCount { get; private set; }
     public long RealTimeMicroseconds { get; private set; }
     public double MeanRealTimeMilliseconds => RealTimeMicroseconds / 1000.0 / CallCount;
