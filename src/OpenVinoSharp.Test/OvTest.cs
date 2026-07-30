@@ -124,6 +124,41 @@ public unsafe class OvTest
         }
     }
 
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void OvTest_CachedTensors_InferAndReadOutputDoNotAllocate()
+    {
+        var modelPath = Path.Combine(AppContext.BaseDirectory, TestModelFileName);
+        using var core = new OvCore();
+        using var model = core.ReadModel(modelPath);
+        using var compiledModel = model.Compile();
+        using var inferRequest = compiledModel.CreateInferRequest();
+        using var inputTensor = inferRequest.GetInputTensor();
+        using var outputTensor = inferRequest.GetOutputTensor();
+        var input = inputTensor.GetData<float>();
+        var output = outputTensor.GetData<float>();
+
+        for (var warmup = 0; warmup < 3; ++warmup)
+        {
+            input[0] = warmup;
+            inferRequest.Infer();
+            _ = output[0];
+        }
+
+        var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = 0f;
+        for (var iteration = 0; iteration < 10; ++iteration)
+        {
+            input[0] = iteration;
+            inferRequest.Infer();
+            result = output[0];
+        }
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
+
+        Assert.AreEqual(0L, allocatedBytes);
+        Assert.IsTrue(float.IsFinite(result));
+    }
+
     static void TraceShape(string name, ReadOnlySpan<long> shape)
     {
         Trace.WriteLine($"{name} shape: [{string.Join(", ", shape.ToArray())}]");

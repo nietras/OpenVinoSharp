@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using OpenVinoSharp;
@@ -107,29 +108,40 @@ static IReadOnlyList<NodeProfile> RunModel(
     var compileMilliseconds = ElapsedMilliseconds(beforeCompile);
 
     using var inferRequest = compiledModel.CreateInferRequest();
+    using var inputTensor = inferRequest.GetInputTensor();
     var beforeFirstInference = Stopwatch.GetTimestamp();
     inferRequest.Infer();
     var firstInferenceMilliseconds = ElapsedMilliseconds(beforeFirstInference);
+    using var outputTensor = inferRequest.GetOutputTensor();
 
     for (var warmup = 0; warmup < WarmupCount; ++warmup)
     {
+        Marshal.WriteByte(inputTensor.Data, 0, (byte)warmup);
         inferRequest.Infer();
+        _ = Marshal.ReadByte(outputTensor.Data);
     }
 
-    var elapsedMilliseconds = new List<double>(32 * 1024);
+    var iterations = 0;
     var totalMilliseconds = 0.0;
-    while (totalMilliseconds < TargetRunDurationMilliseconds || elapsedMilliseconds.Count < MinimumIterations)
+    var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
+    while (totalMilliseconds < TargetRunDurationMilliseconds || iterations < MinimumIterations)
     {
+        Marshal.WriteByte(inputTensor.Data, 0, (byte)iterations);
         var beforeInference = Stopwatch.GetTimestamp();
         inferRequest.Infer();
-        var milliseconds = ElapsedMilliseconds(beforeInference);
-        totalMilliseconds += milliseconds;
-        elapsedMilliseconds.Add(milliseconds);
+        _ = Marshal.ReadByte(outputTensor.Data);
+        totalMilliseconds += ElapsedMilliseconds(beforeInference);
+        ++iterations;
     }
+    var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
 
-    var meanPerBatchMilliseconds = totalMilliseconds / elapsedMilliseconds.Count;
+    var meanPerBatchMilliseconds = totalMilliseconds / iterations;
     log($"{configuration.Name,-24};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
-        $"{elapsedMilliseconds.Count,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
+        $"{iterations,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
+    if (allocatedBytes != 0)
+    {
+        log($"WARNING: `{configuration.Name}` single-request inference allocated {allocatedBytes} managed bytes.");
+    }
 
     if (configuration.EnableProfiling)
     {
@@ -171,6 +183,7 @@ static void RunModelConcurrent(
         using var barrier = new Barrier(threadCount + 1);
         var iterationsPerThread = new long[threadCount];
         var totalMillisecondsPerThread = new double[threadCount];
+        var allocatedBytesPerThread = new long[threadCount];
         var running = 1;
         var threads = new Thread[threadCount];
 
@@ -180,24 +193,58 @@ static void RunModelConcurrent(
             threads[index] = new Thread(() =>
             {
                 using var inferRequest = compiledModel.CreateInferRequest();
+                using var inputTensor = inferRequest.GetInputTensor();
+                inferRequest.Infer();
+                using var outputTensor = inferRequest.GetOutputTensor();
                 for (var warmup = 0; warmup < WarmupCount; ++warmup)
                 {
+                    Marshal.WriteByte(inputTensor.Data, 0, (byte)warmup);
                     inferRequest.Infer();
+                    _ = Marshal.ReadByte(outputTensor.Data);
                 }
 
                 barrier.SignalAndWait();
-                var iterations = 0L;
-                var totalMilliseconds = 0.0;
-                while (Volatile.Read(ref running) != 0)
+                _ = GC.GetAllocatedBytesForCurrentThread();
+                Marshal.WriteByte(inputTensor.Data, 0, 0);
+                var beforePrimingInference = Stopwatch.GetTimestamp();
+                inferRequest.Infer();
+                _ = Marshal.ReadByte(outputTensor.Data);
+                _ = ElapsedMilliseconds(beforePrimingInference);
+
+                if (Volatile.Read(ref running) != 0)
                 {
-                    var beforeInference = Stopwatch.GetTimestamp();
+                    Marshal.WriteByte(inputTensor.Data, 0, 0);
+                    var beforePrimingLoopInference = Stopwatch.GetTimestamp();
                     inferRequest.Infer();
-                    totalMilliseconds += ElapsedMilliseconds(beforeInference);
-                    ++iterations;
+                    _ = Marshal.ReadByte(outputTensor.Data);
+                    _ = ElapsedMilliseconds(beforePrimingLoopInference);
                 }
 
+                var iterations = 0L;
+                var totalMilliseconds = 0.0;
+                var isSteadyState = false;
+                var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
+                while (Volatile.Read(ref running) != 0)
+                {
+                    Marshal.WriteByte(inputTensor.Data, 0, (byte)iterations);
+                    var beforeInference = Stopwatch.GetTimestamp();
+                    inferRequest.Infer();
+                    _ = Marshal.ReadByte(outputTensor.Data);
+                    totalMilliseconds += ElapsedMilliseconds(beforeInference);
+                    ++iterations;
+
+                    if (!isSteadyState)
+                    {
+                        isSteadyState = true;
+                        iterations = 0;
+                        totalMilliseconds = 0.0;
+                        _ = GC.GetAllocatedBytesForCurrentThread();
+                        allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
+                    }
+                }
                 iterationsPerThread[index] = iterations;
                 totalMillisecondsPerThread[index] = totalMilliseconds;
+                allocatedBytesPerThread[index] = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
             })
             {
                 IsBackground = true,
@@ -226,6 +273,11 @@ static void RunModelConcurrent(
 
         log($"{configuration.Name,-24};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
             $"{meanCallMilliseconds.Min(),18:F3};{meanCallMilliseconds.Average(),18:F3};{meanCallMilliseconds.Max(),18:F3}");
+        if (allocatedBytesPerThread.Any(allocatedBytes => allocatedBytes != 0))
+        {
+            log($"WARNING: `{configuration.Name}` concurrent inference with {threadCount} threads allocated " +
+                $"managed bytes per thread: {string.Join(", ", allocatedBytesPerThread)}.");
+        }
     }
 }
 
