@@ -21,8 +21,6 @@ jobs:
       # (/repos/{owner}/{repo}/statuses/{sha}), not the Checks API,
       # so statuses:write is the correct minimum permission (not checks:write)
       statuses: write
-      issues: write
-      pull-requests: write
 
     steps:
       - name: Harden Runner
@@ -54,6 +52,7 @@ jobs:
           VALIDATE_MARKDOWN_PRETTIER: false
           VALIDATE_GIT_COMMITLINT: false
           VALIDATE_JSCPD: false
+          ENABLE_GITHUB_PULL_REQUEST_SUMMARY_COMMENT: false
           FILTER_REGEX_EXCLUDE: "./(benchmarks/.*|\\.gitignore)"
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
