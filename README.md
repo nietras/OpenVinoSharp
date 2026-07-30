@@ -83,6 +83,9 @@ namespace OpenVinoSharp
         [System.Runtime.CompilerServices.SkipLocalsInit]
         [System.Runtime.InteropServices.LibraryImport("openvino_c", StringMarshalling=System.Runtime.InteropServices.StringMarshalling.Utf8)]
         public static OpenVinoSharp.Ov.Status ov_core_read_model(OpenVinoSharp.Ov.CoreHandle core, string modelPath, string? binPath, out OpenVinoSharp.Ov.ModelHandle model) { }
+        [System.Runtime.CompilerServices.SkipLocalsInit]
+        [System.Runtime.InteropServices.LibraryImport("openvino_c", StringMarshalling=System.Runtime.InteropServices.StringMarshalling.Utf8)]
+        public static OpenVinoSharp.Ov.Status ov_core_set_property(OpenVinoSharp.Ov.CoreHandle core, string deviceName, string propertyKey, string propertyValue) { }
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static nint ov_get_error_info(OpenVinoSharp.Ov.Status status) { }
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
@@ -213,6 +216,7 @@ namespace OpenVinoSharp
         public override bool IsInvalid { get; }
         public OpenVinoSharp.OvModel ReadModel(string modelPath, string? binPath = null) { }
         protected override bool ReleaseHandle() { }
+        public void SetProperty(string deviceName, string propertyKey, string propertyValue) { }
     }
     [System.Serializable]
     public class OvException : System.Exception
@@ -224,6 +228,7 @@ namespace OpenVinoSharp
         public override bool IsInvalid { get; }
         public OpenVinoSharp.OvTensor GetInputTensor() { }
         public OpenVinoSharp.OvTensor GetOutputTensor() { }
+        public System.Collections.Generic.IReadOnlyList<OpenVinoSharp.OvProfilingInfo> GetProfilingInfo() { }
         public void Infer() { }
         protected override bool ReleaseHandle() { }
     }
@@ -232,6 +237,22 @@ namespace OpenVinoSharp
         public override bool IsInvalid { get; }
         public OpenVinoSharp.OvCompiledModel Compile(string deviceName = "CPU") { }
         protected override bool ReleaseHandle() { }
+    }
+    public sealed class OvProfilingInfo : System.IEquatable<OpenVinoSharp.OvProfilingInfo>
+    {
+        public OvProfilingInfo(OpenVinoSharp.OvProfilingStatus Status, long RealTimeMicroseconds, long CpuTimeMicroseconds, string NodeName, string ExecutionType, string NodeType) { }
+        public long CpuTimeMicroseconds { get; init; }
+        public string ExecutionType { get; init; }
+        public string NodeName { get; init; }
+        public string NodeType { get; init; }
+        public long RealTimeMicroseconds { get; init; }
+        public OpenVinoSharp.OvProfilingStatus Status { get; init; }
+    }
+    public enum OvProfilingStatus
+    {
+        NotRun = 0,
+        OptimizedOut = 1,
+        Executed = 2,
     }
     public sealed class OvShape : System.Runtime.InteropServices.SafeHandle
     {
