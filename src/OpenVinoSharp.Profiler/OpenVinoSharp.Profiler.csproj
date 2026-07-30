@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
+    <PackageReference Include="NtvLibs.oneTBB.tbb12.runtime.win-x64" Version="2023.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenVinoSharp\OpenVinoSharp.csproj" />
+  </ItemGroup>
+
+</Project>
