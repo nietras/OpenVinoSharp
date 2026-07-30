@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using OpenVinoSharp;
 
@@ -60,7 +61,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Single-request performance");
     report("```");
-    report($"{"Execution Provider",-32};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
+    report($"{"Configuration",-24};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
     var configurationToProfilingInfo = new List<(ProfilingConfiguration Configuration, IReadOnlyList<NodeProfile> ProfilingInfo)>();
     foreach (var configuration in configurations)
     {
@@ -71,7 +72,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Concurrent app-thread scaling (single shared compiled model)");
     report("```");
-    report($"{"Execution Provider",-32};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
+    report($"{"Configuration",-24};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
     foreach (var configuration in configurations)
     {
         RunModelConcurrent(modelPath, configuration, concurrentThreadCountsToTest, concurrentTestDuration, report);
@@ -127,7 +128,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     }
 
     var meanPerBatchMilliseconds = totalMilliseconds / elapsedMilliseconds.Count;
-    log($"{configuration.Name,-32};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
+    log($"{configuration.Name,-24};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
         $"{elapsedMilliseconds.Count,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
 
     if (configuration.EnableProfiling)
@@ -223,7 +224,7 @@ static void RunModelConcurrent(
             .ToArray();
         var throughputPerSecond = totalIterations / (elapsedMilliseconds / 1000.0);
 
-        log($"{configuration.Name,-32};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
+        log($"{configuration.Name,-24};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
             $"{meanCallMilliseconds.Min(),18:F3};{meanCallMilliseconds.Average(),18:F3};{meanCallMilliseconds.Max(),18:F3}");
     }
 }
@@ -251,20 +252,42 @@ static void WriteNodeProfileSummary(
     IReadOnlyList<NodeProfile> profilingInfo,
     Action<string> log)
 {
+    const string NodeHeader = "Node";
+    const string TypeHeader = "Type";
+    const string ExecutionHeader = "Execution";
+    const string StatusHeader = "Status";
+    const string CallsHeader = "Calls";
+    const string TotalMillisecondsHeader = "Total [ms]";
+    const string MeanMillisecondsHeader = "Mean [ms/call]";
+    const int CallsWidth = 5;
+    const int TotalMillisecondsWidth = 10;
+    const int MeanMillisecondsWidth = 13;
+
+    var nodeWidth = Math.Max(NodeHeader.Length, profilingInfo.Max(item => item.NodeName.Length));
+    var typeWidth = Math.Max(TypeHeader.Length, profilingInfo.Max(item => item.NodeType.Length));
+    var executionWidth = Math.Max(ExecutionHeader.Length, profilingInfo.Max(item => item.ExecutionType.Length));
+    var statusWidth = Math.Max(StatusHeader.Length, profilingInfo.Max(item => item.Status.ToString().Length));
+    var headerFormat = CompositeFormat.Parse(
+        $"{{0,-{nodeWidth}}};{{1,-{typeWidth}}};{{2,-{executionWidth}}};{{3,-{statusWidth}}};" +
+        $"{{4,{CallsWidth}}};{{5,{TotalMillisecondsWidth}}};{{6,{MeanMillisecondsWidth}}}");
+    var rowFormat = CompositeFormat.Parse(
+        $"{{0,-{nodeWidth}}};{{1,-{typeWidth}}};{{2,-{executionWidth}}};{{3,-{statusWidth}}};" +
+        $"{{4,{CallsWidth}}};{{5,{TotalMillisecondsWidth}:F3}};{{6,{MeanMillisecondsWidth}:F3}}");
+
     log(string.Empty);
     log($"## CPU node profile: `{configurationName}`");
-    log(string.Empty);
-    log($"| Node | Type | Execution | Status | Calls | Total [ms] | Mean [ms/call] |");
-    log("|:---|:---|:---|:---|---:|---:|---:|");
+    log("```");
+    log(string.Format(null, headerFormat,
+        NodeHeader, TypeHeader, ExecutionHeader, StatusHeader,
+        CallsHeader, TotalMillisecondsHeader, MeanMillisecondsHeader));
     foreach (var item in profilingInfo)
     {
-        log($"| {EscapeMarkdown(item.NodeName),-76} | {EscapeMarkdown(item.NodeType),-12} | " +
-            $"{EscapeMarkdown(item.ExecutionType),-20} | {item.Status,-8} | {item.CallCount,5} | " +
-            $"{item.RealTimeMicroseconds / 1000.0,10:F3} | {item.MeanRealTimeMilliseconds,13:F3} |");
+        log(string.Format(null, rowFormat,
+            item.NodeName, item.NodeType, item.ExecutionType, item.Status,
+            item.CallCount, item.RealTimeMicroseconds / 1000.0, item.MeanRealTimeMilliseconds));
     }
+    log("```");
 }
-
-static string EscapeMarkdown(string value) => value.Replace("|", "\\|");
 
 static double ElapsedMilliseconds(long beforeTimestamp) =>
     (Stopwatch.GetTimestamp() - beforeTimestamp) * 1000.0 / Stopwatch.Frequency;
@@ -273,17 +296,7 @@ sealed record ProfilingConfiguration(
     string Name,
     int? InferenceThreadCount,
     int? StreamCount,
-    bool EnableProfiling)
-{
-    public ProfilingConfiguration WithConcurrentStreamCount(int streamCount) =>
-        InferenceThreadCount is null
-            ? this
-            : this with
-            {
-                Name = $"CPU {InferenceThreadCount}*Thread {streamCount}*Stream",
-                StreamCount = streamCount,
-            };
-}
+    bool EnableProfiling);
 
 sealed class NodeProfile(OvProfilingInfo profilingInfo)
 {
