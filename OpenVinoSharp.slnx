@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/ci/">
     <File Path=".github/dependabot.yml" />
     <File Path=".github/workflows/bench.yml" />
@@ -35,6 +35,7 @@
   </Folder>
   <Project Path="src/OpenVinoSharp.Benchmarks/OpenVinoSharp.Benchmarks.csproj" />
   <Project Path="src/OpenVinoSharp.ComparisonBenchmarks/OpenVinoSharp.ComparisonBenchmarks.csproj" />
+  <Project Path="src/OpenVinoSharp.Profiler/OpenVinoSharp.Profiler.csproj" />
   <Project Path="src/OpenVinoSharp.Test/OpenVinoSharp.Test.csproj" />
   <Project Path="src/OpenVinoSharp.Tester/OpenVinoSharp.Tester.csproj" />
   <Project Path="src/OpenVinoSharp.XyzTest/OpenVinoSharp.XyzTest.csproj" />

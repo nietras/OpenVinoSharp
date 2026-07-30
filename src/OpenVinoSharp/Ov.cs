@@ -17,6 +17,24 @@ public static partial class Ov
     public readonly record struct TensorHandle(nint Value);
 
     [StructLayout(LayoutKind.Sequential)]
+    internal struct ProfilingInfo
+    {
+        public int Status;
+        public long RealTime;
+        public long CpuTime;
+        public nint NodeName;
+        public nint ExecutionType;
+        public nint NodeType;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct ProfilingInfoList
+    {
+        public nint ProfilingInfos;
+        public nuint Size;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe struct Shape
     {
         public long Rank;
@@ -116,6 +134,9 @@ public static partial class Ov
     [LibraryImport(LibraryName)]
     public static partial void ov_core_free(CoreHandle core);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial Status ov_core_set_property(CoreHandle core, string deviceName,
+        string propertyKey, string propertyValue);
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     public static partial Status ov_core_read_model(CoreHandle core,
         string modelPath, string? binPath, out ModelHandle model);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
@@ -136,6 +157,11 @@ public static partial class Ov
     public static partial Status ov_infer_request_set_input_tensor(InferRequestHandle inferRequest, TensorHandle tensor);
     [LibraryImport(LibraryName)]
     public static partial Status ov_infer_request_infer(InferRequestHandle inferRequest);
+    [LibraryImport(LibraryName)]
+    internal static partial Status ov_infer_request_get_profiling_info(InferRequestHandle inferRequest,
+        out ProfilingInfoList profilingInfos);
+    [LibraryImport(LibraryName)]
+    internal static partial void ov_profiling_info_list_free(ref ProfilingInfoList profilingInfos);
     [LibraryImport(LibraryName)]
     public static partial Status ov_infer_request_get_output_tensor(InferRequestHandle inferRequest, out TensorHandle tensor);
     [LibraryImport(LibraryName)]
