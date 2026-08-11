@@ -14,6 +14,7 @@ const string EnableProfilingProperty = "PERF_COUNT";
 const string EnableProfilingValue = "YES";
 const string InferenceThreadCountProperty = "INFERENCE_NUM_THREADS";
 const string NumberOfStreamsProperty = "NUM_STREAMS";
+const string EnableCpuPinningProperty = "ENABLE_CPU_PINNING";
 const int BatchSize = 1;
 const int WarmupCount = 3;
 const int MinimumIterations = 10;
@@ -23,12 +24,13 @@ var concurrentTestDuration = TimeSpan.FromSeconds(1);
 int[] concurrentThreadCountsToTest = [1, 2, 4, 8, 16];
 ProfilingConfiguration[] configurations =
 [
-    new("CPU", null, null, false),
+    new("CPU", 16, 8, true), // 16 threads / 8 streams = 2 thread(s) per stream
+    //new("CPU", null, null, false),
     // NOTE: Without -DTHREADING=SEQ custom OpenVino build this is limited to 1
     //       internal thread and does not use calling thread for inference.
     //       There does not appear to be a dynamic option directly for calling
     //       thread execution only.
-    new("CPU 1*Thread 0*Stream", 1, 0, true),
+    //new("CPU 1*Thread 0*Stream", 1, 0, true),
 ];
 
 Action<string> log = message =>
@@ -284,6 +286,8 @@ static void RunModelConcurrent(
 static OvCore CreateProfilingCore(ProfilingConfiguration configuration)
 {
     var core = new OvCore();
+    //core.SetProperty(DeviceName, EnableCpuPinningProperty, "NO");
+    core.SetProperty(DeviceName, EnableCpuPinningProperty, "ON");
     if (configuration.EnableProfiling)
     {
         core.SetProperty(DeviceName, EnableProfilingProperty, EnableProfilingValue);
