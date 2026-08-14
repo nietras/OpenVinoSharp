@@ -138,7 +138,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
 
     var meanPerBatchMilliseconds = totalMilliseconds / iterations;
-    log($"{configuration.Name,-24};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
+    log($"{configuration.Name,-16};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
         $"{iterations,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
     if (allocatedBytes != 0)
     {
@@ -273,7 +273,7 @@ static void RunModelConcurrent(
             .ToArray();
         var throughputPerSecond = totalIterations / (elapsedMilliseconds / 1000.0);
 
-        log($"{configuration.Name,-24};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
+        log($"{configuration.Name,-16};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
             $"{meanCallMilliseconds.Min(),18:F3};{meanCallMilliseconds.Average(),18:F3};{meanCallMilliseconds.Max(),18:F3}");
         if (allocatedBytesPerThread.Any(allocatedBytes => allocatedBytes != 0))
         {
