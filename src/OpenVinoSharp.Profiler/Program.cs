@@ -64,7 +64,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Single-request performance");
     report("```");
-    report($"{"Configuration",-24};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
+    report($"{"Configuration",-16};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
     var configurationToProfilingInfo = new List<(ProfilingConfiguration Configuration, IReadOnlyList<NodeProfile> ProfilingInfo)>();
     foreach (var configuration in configurations)
     {
@@ -75,7 +75,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Concurrent app-thread scaling (single shared compiled model)");
     report("```");
-    report($"{"Configuration",-24};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
+    report($"{"Configuration",-16};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
     foreach (var configuration in configurations)
     {
         RunModelConcurrent(modelPath, configuration, concurrentThreadCountsToTest, concurrentTestDuration, report);
