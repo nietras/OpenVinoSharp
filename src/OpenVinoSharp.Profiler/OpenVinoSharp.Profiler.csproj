@@ -6,7 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
+    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1.1 " />
+    <!-- ThreadingSeq build does not work, causes Access Violation -->
+    <!--<PackageReference Include="NtvLibs.OpenVino.ThreadingSeq.cpu.runtime.win-x64" Version="2026.2.1-preview.1 " />-->
     <PackageReference Include="NtvLibs.oneTBB.tbb12.runtime.win-x64" Version="2023.1.0" />
   </ItemGroup>
 

@@ -14,6 +14,7 @@ const string EnableProfilingProperty = "PERF_COUNT";
 const string EnableProfilingValue = "YES";
 const string InferenceThreadCountProperty = "INFERENCE_NUM_THREADS";
 const string NumberOfStreamsProperty = "NUM_STREAMS";
+//const string EnableCpuPinningProperty = "ENABLE_CPU_PINNING";
 const int BatchSize = 1;
 const int WarmupCount = 3;
 const int MinimumIterations = 10;
@@ -23,12 +24,13 @@ var concurrentTestDuration = TimeSpan.FromSeconds(1);
 int[] concurrentThreadCountsToTest = [1, 2, 4, 8, 16];
 ProfilingConfiguration[] configurations =
 [
-    new("CPU", null, null, false),
+    new("CPU", 16, 8, true), // 16 threads / 8 streams = 2 thread(s) per stream
+    //new("CPU", null, null, false),
     // NOTE: Without -DTHREADING=SEQ custom OpenVino build this is limited to 1
     //       internal thread and does not use calling thread for inference.
     //       There does not appear to be a dynamic option directly for calling
     //       thread execution only.
-    new("CPU 1*Thread 0*Stream", 1, 0, true),
+    //new("CPU 1*Thread 0*Stream", 1, 0, true),
 ];
 
 Action<string> log = message =>
@@ -62,7 +64,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Single-request performance");
     report("```");
-    report($"{"Configuration",-24};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
+    report($"{"Configuration",-16};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
     var configurationToProfilingInfo = new List<(ProfilingConfiguration Configuration, IReadOnlyList<NodeProfile> ProfilingInfo)>();
     foreach (var configuration in configurations)
     {
@@ -73,7 +75,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Concurrent app-thread scaling (single shared compiled model)");
     report("```");
-    report($"{"Configuration",-24};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
+    report($"{"Configuration",-16};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
     foreach (var configuration in configurations)
     {
         RunModelConcurrent(modelPath, configuration, concurrentThreadCountsToTest, concurrentTestDuration, report);
@@ -136,7 +138,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
 
     var meanPerBatchMilliseconds = totalMilliseconds / iterations;
-    log($"{configuration.Name,-24};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
+    log($"{configuration.Name,-16};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
         $"{iterations,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
     if (allocatedBytes != 0)
     {
@@ -271,7 +273,7 @@ static void RunModelConcurrent(
             .ToArray();
         var throughputPerSecond = totalIterations / (elapsedMilliseconds / 1000.0);
 
-        log($"{configuration.Name,-24};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
+        log($"{configuration.Name,-16};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
             $"{meanCallMilliseconds.Min(),18:F3};{meanCallMilliseconds.Average(),18:F3};{meanCallMilliseconds.Max(),18:F3}");
         if (allocatedBytesPerThread.Any(allocatedBytes => allocatedBytes != 0))
         {
@@ -284,6 +286,8 @@ static void RunModelConcurrent(
 static OvCore CreateProfilingCore(ProfilingConfiguration configuration)
 {
     var core = new OvCore();
+    //core.SetProperty(DeviceName, EnableCpuPinningProperty, "NO");
+    //core.SetProperty(DeviceName, EnableCpuPinningProperty, "ON");
     if (configuration.EnableProfiling)
     {
         core.SetProperty(DeviceName, EnableProfilingProperty, EnableProfilingValue);
