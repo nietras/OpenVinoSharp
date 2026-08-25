@@ -22,10 +22,16 @@ AOT/NativeAOT compatible.
 
 ## Example
 ```csharp
-Ov.Empty();
-
-// Above example code is for demonstration purposes only.
-// Short names and repeated constants are only for demonstration.
+var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+using var core = new OvCore();
+using var model = core.ReadModel(modelPath);
+using var compiledModel = model.Compile();
+using var inferRequest = compiledModel.CreateInferRequest();
+using var inputTensor = inferRequest.GetInputTensor();
+inputTensor.GetData<float>().Clear();
+inferRequest.Infer();
+using var outputTensor = inferRequest.GetOutputTensor();
+_ = outputTensor.GetData<float>();
 ```
 
 For more examples see [Example Catalogue](#example-catalogue).
@@ -40,12 +46,18 @@ Benchmarks.
 ## Example Catalogue
 The following examples are available in [ReadMeTest.cs](src/OpenVinoSharp.XyzTest/ReadMeTest.cs).
 
-### Example - Empty
+### Example - MNIST inference
 ```csharp
-Ov.Empty();
-
-// Above example code is for demonstration purposes only.
-// Short names and repeated constants are only for demonstration.
+var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+using var core = new OvCore();
+using var model = core.ReadModel(modelPath);
+using var compiledModel = model.Compile();
+using var inferRequest = compiledModel.CreateInferRequest();
+using var inputTensor = inferRequest.GetInputTensor();
+inputTensor.GetData<float>().Clear();
+inferRequest.Infer();
+using var outputTensor = inferRequest.GetOutputTensor();
+_ = outputTensor.GetData<float>();
 ```
 
 ## Public API Reference

@@ -46,12 +46,4 @@ public class TestBench : BaseBench
 #endif
 
     public TestBench() : base("Test", DefaultCount) { }
-
-    [Benchmark(Baseline = true)]
-#pragma warning disable CA1822 // Mark members as static
-    public void OpenVinoSharp______()
-#pragma warning restore CA1822 // Mark members as static
-    {
-        Ov.Empty();
-    }
 }
