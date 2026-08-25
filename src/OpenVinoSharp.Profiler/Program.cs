@@ -1,5 +1,4 @@
-﻿using OpenVinoSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using OpenVinoSharp;
 
 const string SearchPattern = "*.onnx";
 const string DeviceName = "CPU";
