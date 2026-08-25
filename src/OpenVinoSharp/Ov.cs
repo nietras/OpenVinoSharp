@@ -141,29 +141,34 @@ public static partial class Ov
         string modelPath, string? binPath, out ModelHandle model);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     public static partial Status ov_core_compile_model_from_file(CoreHandle core,
-        string modelPath, string deviceName, nuint propertyArgsSize, out CompiledModelHandle compiledModel);
+        string modelPath, string deviceName, nuint propertyArgsSize,
+        out CompiledModelHandle compiledModel);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     public static partial Status ov_core_compile_model(CoreHandle core, ModelHandle model,
         string deviceName, nuint propertyArgsSize, out CompiledModelHandle compiledModel);
     [LibraryImport(LibraryName)]
     public static partial void ov_model_free(ModelHandle model);
     [LibraryImport(LibraryName)]
-    public static partial Status ov_compiled_model_create_infer_request(CompiledModelHandle compiledModel, out InferRequestHandle inferRequest);
+    public static partial Status ov_compiled_model_create_infer_request(
+        CompiledModelHandle compiledModel, out InferRequestHandle inferRequest);
     [LibraryImport(LibraryName)]
     public static partial void ov_compiled_model_free(CompiledModelHandle compiledModel);
     [LibraryImport(LibraryName)]
-    public static partial Status ov_infer_request_get_input_tensor(InferRequestHandle inferRequest, out TensorHandle tensor);
+    public static partial Status ov_infer_request_get_input_tensor(
+        InferRequestHandle inferRequest, out TensorHandle tensor);
     [LibraryImport(LibraryName)]
-    public static partial Status ov_infer_request_set_input_tensor(InferRequestHandle inferRequest, TensorHandle tensor);
+    public static partial Status ov_infer_request_set_input_tensor(
+        InferRequestHandle inferRequest, TensorHandle tensor);
     [LibraryImport(LibraryName)]
     public static partial Status ov_infer_request_infer(InferRequestHandle inferRequest);
     [LibraryImport(LibraryName)]
-    internal static partial Status ov_infer_request_get_profiling_info(InferRequestHandle inferRequest,
-        out ProfilingInfoList profilingInfos);
+    internal static partial Status ov_infer_request_get_profiling_info(
+        InferRequestHandle inferRequest, out ProfilingInfoList profilingInfos);
     [LibraryImport(LibraryName)]
     internal static partial void ov_profiling_info_list_free(ref ProfilingInfoList profilingInfos);
     [LibraryImport(LibraryName)]
-    public static partial Status ov_infer_request_get_output_tensor(InferRequestHandle inferRequest, out TensorHandle tensor);
+    public static partial Status ov_infer_request_get_output_tensor(
+        InferRequestHandle inferRequest, out TensorHandle tensor);
     [LibraryImport(LibraryName)]
     public static partial void ov_infer_request_free(InferRequestHandle inferRequest);
     [LibraryImport(LibraryName)]
