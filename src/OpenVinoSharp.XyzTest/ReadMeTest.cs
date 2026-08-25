@@ -24,10 +24,16 @@ public partial class ReadMeTest
     [TestMethod]
     public void ReadMeTest_()
     {
-        Ov.Empty();
-
-        // Above example code is for demonstration purposes only.
-        // Short names and repeated constants are only for demonstration.
+        var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
+        using var core = new OvCore();
+        using var model = core.ReadModel(modelPath);
+        using var compiledModel = model.Compile();
+        using var inferRequest = compiledModel.CreateInferRequest();
+        using var inputTensor = inferRequest.GetInputTensor();
+        inputTensor.GetData<float>().Clear();
+        inferRequest.Infer();
+        using var outputTensor = inferRequest.GetOutputTensor();
+        _ = outputTensor.GetData<float>();
     }
 
 #if NET10_0
@@ -103,7 +109,7 @@ public partial class ReadMeTest
         var testBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
         {
             (nameof(ReadMeTest_) + "()", "## Example"),
-            (nameof(ReadMeTest_) + "()", "### Example - Empty"),
+            (nameof(ReadMeTest_) + "()", "### Example - MNIST inference"),
         };
         readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
             sourceStartLineOffset: 2, "    }", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 8);

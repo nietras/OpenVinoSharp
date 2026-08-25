@@ -26,7 +26,7 @@ public unsafe class OvTest
         var exception = Assert.ThrowsExactly<OvStatusException>(() => Status.GENERAL_ERROR.Ok());
 
         Assert.AreEqual(Status.GENERAL_ERROR, exception.Status);
-        StringAssert.Contains(exception.Message, "general error");
+        Assert.Contains("general error", exception.Message);
     }
 
     [TestMethod]

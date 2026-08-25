@@ -14,6 +14,10 @@
   <ItemGroup>
     <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\models\mnist-8.onnx" Link="mnist-8.onnx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1">
@@ -23,6 +27,7 @@
     <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
     <PackageReference Include="PublicApiGenerator" Version="11.5.4" />
     <PackageReference Include="MSTest" Version="4.3.3" />
+    <PackageReference Include="NtvLibs.oneTBB.tbb12.runtime.win-x64" Version="2023.1.0" />
   </ItemGroup>
 
 </Project>
