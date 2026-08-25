@@ -9,7 +9,6 @@ namespace OpenVinoSharp.ComparisonBenchmarks;
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class BaseBench
 {
-    const int FloatsCount = 20;
     readonly ReaderSpec[] _readers;
 
     protected BaseBench(string scope, int count)
@@ -49,7 +48,9 @@ public class TestBench : BaseBench
     public TestBench() : base("Test", DefaultCount) { }
 
     [Benchmark(Baseline = true)]
+#pragma warning disable CA1822 // Mark members as static
     public void OpenVinoSharp______()
+#pragma warning restore CA1822 // Mark members as static
     {
         Ov.Empty();
     }

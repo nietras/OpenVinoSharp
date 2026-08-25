@@ -5,15 +5,12 @@ namespace OpenVinoSharp;
 
 public sealed unsafe class OvTensor : SafeHandle
 {
-    readonly OvInferRequest _inferRequest;
     readonly IntPtr _data;
     readonly int _length;
 
-    internal OvTensor(OvInferRequest inferRequest, Ov.TensorHandle tensor)
+    internal OvTensor(Ov.TensorHandle tensor)
         : base(nint.Zero, ownsHandle: true)
     {
-        ArgumentNullException.ThrowIfNull(inferRequest);
-        _inferRequest = inferRequest;
         Ov.ov_tensor_data(tensor, out _data).Ok();
         SetHandle(tensor.Value);
         Ov.Shape shape = default;
