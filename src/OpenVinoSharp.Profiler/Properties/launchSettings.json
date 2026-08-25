@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "OpenVinoSharp.Profiler": {
-      "commandName": "Project",
-      "debugEngines": "managed,native"
-    }
-  }
-}

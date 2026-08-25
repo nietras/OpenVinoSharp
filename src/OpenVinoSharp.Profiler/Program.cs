@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenVinoSharp;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -6,7 +7,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using OpenVinoSharp;
 
 const string SearchPattern = "*.onnx";
 const string DeviceName = "CPU";
@@ -287,7 +287,7 @@ static OvCore CreateProfilingCore(ProfilingConfiguration configuration)
 {
     var core = new OvCore();
     //core.SetProperty(DeviceName, EnableCpuPinningProperty, "NO");
-    core.SetProperty(DeviceName, EnableCpuPinningProperty, "ON");
+    //core.SetProperty(DeviceName, EnableCpuPinningProperty, "ON");
     if (configuration.EnableProfiling)
     {
         core.SetProperty(DeviceName, EnableProfilingProperty, EnableProfilingValue);
