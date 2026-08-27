@@ -22,6 +22,7 @@ public partial class ReadMeTest
     static readonly string s_readmeFilePath = s_rootDirectory + @"README.md";
 
     [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
     public void ReadMeTest_()
     {
         var modelPath = Path.Combine(AppContext.BaseDirectory, "mnist-8.onnx");
