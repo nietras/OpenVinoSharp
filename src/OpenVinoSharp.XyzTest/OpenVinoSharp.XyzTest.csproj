@@ -24,7 +24,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
+    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1.1" />
     <PackageReference Include="PublicApiGenerator" Version="11.5.4" />
     <PackageReference Include="MSTest" Version="4.3.3" />
     <PackageReference Include="NtvLibs.oneTBB.tbb12.runtime.win-x64" Version="2023.1.0" />
