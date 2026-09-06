@@ -29,7 +29,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1" />
+    <PackageReference Include="NtvLibs.OpenVino.cpu.runtime.win-x64" Version="2026.2.1.1" />
   </ItemGroup>
 
   <ItemGroup>
