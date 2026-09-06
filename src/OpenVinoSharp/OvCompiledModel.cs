@@ -17,6 +17,15 @@ public sealed class OvCompiledModel : SafeHandle
 
     public OvInferRequest CreateInferRequest() => new(this);
 
+    public nuint InputCount
+    {
+        get
+        {
+            Ov.ov_compiled_model_inputs_size(new Ov.CompiledModelHandle(handle), out var inputCount).Ok();
+            return inputCount;
+        }
+    }
+
     internal Ov.CompiledModelHandle CompiledModelHandle => new(handle);
 
     public override bool IsInvalid => handle == nint.Zero;

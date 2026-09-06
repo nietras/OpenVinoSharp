@@ -110,7 +110,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var compileMilliseconds = ElapsedMilliseconds(beforeCompile);
 
     using var inferRequest = compiledModel.CreateInferRequest();
-    using var inputTensor = inferRequest.GetInputTensor();
+    using var inputTensors = new InputTensors(inferRequest, compiledModel.InputCount);
     var beforeFirstInference = Stopwatch.GetTimestamp();
     inferRequest.Infer();
     var firstInferenceMilliseconds = ElapsedMilliseconds(beforeFirstInference);
@@ -118,7 +118,7 @@ static IReadOnlyList<NodeProfile> RunModel(
 
     for (var warmup = 0; warmup < WarmupCount; ++warmup)
     {
-        Marshal.WriteByte(inputTensor.Data, 0, (byte)warmup);
+        inputTensors.WriteFirstByte((byte)warmup);
         inferRequest.Infer();
         _ = Marshal.ReadByte(outputTensor.Data);
     }
@@ -128,7 +128,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
     while (totalMilliseconds < TargetRunDurationMilliseconds || iterations < MinimumIterations)
     {
-        Marshal.WriteByte(inputTensor.Data, 0, (byte)iterations);
+        inputTensors.WriteFirstByte((byte)iterations);
         var beforeInference = Stopwatch.GetTimestamp();
         inferRequest.Infer();
         _ = Marshal.ReadByte(outputTensor.Data);
@@ -195,19 +195,19 @@ static void RunModelConcurrent(
             threads[index] = new Thread(() =>
             {
                 using var inferRequest = compiledModel.CreateInferRequest();
-                using var inputTensor = inferRequest.GetInputTensor();
+                using var inputTensors = new InputTensors(inferRequest, compiledModel.InputCount);
                 inferRequest.Infer();
                 using var outputTensor = inferRequest.GetOutputTensor();
                 for (var warmup = 0; warmup < WarmupCount; ++warmup)
                 {
-                    Marshal.WriteByte(inputTensor.Data, 0, (byte)warmup);
+                    inputTensors.WriteFirstByte((byte)warmup);
                     inferRequest.Infer();
                     _ = Marshal.ReadByte(outputTensor.Data);
                 }
 
                 barrier.SignalAndWait();
                 _ = GC.GetAllocatedBytesForCurrentThread();
-                Marshal.WriteByte(inputTensor.Data, 0, 0);
+                inputTensors.WriteFirstByte(0);
                 var beforePrimingInference = Stopwatch.GetTimestamp();
                 inferRequest.Infer();
                 _ = Marshal.ReadByte(outputTensor.Data);
@@ -215,7 +215,7 @@ static void RunModelConcurrent(
 
                 if (Volatile.Read(ref running) != 0)
                 {
-                    Marshal.WriteByte(inputTensor.Data, 0, 0);
+                    inputTensors.WriteFirstByte(0);
                     var beforePrimingLoopInference = Stopwatch.GetTimestamp();
                     inferRequest.Infer();
                     _ = Marshal.ReadByte(outputTensor.Data);
@@ -228,7 +228,7 @@ static void RunModelConcurrent(
                 var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
                 while (Volatile.Read(ref running) != 0)
                 {
-                    Marshal.WriteByte(inputTensor.Data, 0, (byte)iterations);
+                    inputTensors.WriteFirstByte((byte)iterations);
                     var beforeInference = Stopwatch.GetTimestamp();
                     inferRequest.Infer();
                     _ = Marshal.ReadByte(outputTensor.Data);
@@ -347,6 +347,44 @@ static void WriteNodeProfileSummary(
 
 static double ElapsedMilliseconds(long beforeTimestamp) =>
     (Stopwatch.GetTimestamp() - beforeTimestamp) * 1000.0 / Stopwatch.Frequency;
+
+sealed class InputTensors : IDisposable
+{
+    private readonly OvTensor[] tensors;
+
+    public InputTensors(OvInferRequest inferRequest, nuint inputCount)
+    {
+        tensors = new OvTensor[checked((int)inputCount)];
+        try
+        {
+            for (nuint inputIndex = 0; inputIndex < inputCount; ++inputIndex)
+            {
+                tensors[checked((int)inputIndex)] = inferRequest.GetInputTensor(inputIndex);
+            }
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+    }
+
+    public void WriteFirstByte(byte value)
+    {
+        foreach (var tensor in tensors)
+        {
+            Marshal.WriteByte(tensor.Data, 0, value);
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var tensor in tensors)
+        {
+            tensor?.Dispose();
+        }
+    }
+}
 
 sealed record ProfilingConfiguration(
     string Name,
