@@ -82,6 +82,9 @@ namespace OpenVinoSharp
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static void ov_compiled_model_free(OpenVinoSharp.Ov.CompiledModelHandle compiledModel) { }
         [System.Runtime.CompilerServices.SkipLocalsInit]
+        [System.Runtime.InteropServices.LibraryImport("openvino_c")]
+        public static OpenVinoSharp.Ov.Status ov_compiled_model_inputs_size(OpenVinoSharp.Ov.CompiledModelHandle compiledModel, out System.UIntPtr inputCount) { }
+        [System.Runtime.CompilerServices.SkipLocalsInit]
         [System.Runtime.InteropServices.LibraryImport("openvino_c", StringMarshalling=System.Runtime.InteropServices.StringMarshalling.Utf8)]
         public static OpenVinoSharp.Ov.Status ov_core_compile_model(OpenVinoSharp.Ov.CoreHandle core, OpenVinoSharp.Ov.ModelHandle model, string deviceName, nuint propertyArgsSize, out OpenVinoSharp.Ov.CompiledModelHandle compiledModel) { }
         [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -107,6 +110,9 @@ namespace OpenVinoSharp
         [System.Runtime.CompilerServices.SkipLocalsInit]
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static OpenVinoSharp.Ov.Status ov_infer_request_get_input_tensor(OpenVinoSharp.Ov.InferRequestHandle inferRequest, out OpenVinoSharp.Ov.TensorHandle tensor) { }
+        [System.Runtime.CompilerServices.SkipLocalsInit]
+        [System.Runtime.InteropServices.LibraryImport("openvino_c")]
+        public static OpenVinoSharp.Ov.Status ov_infer_request_get_input_tensor_by_index(OpenVinoSharp.Ov.InferRequestHandle inferRequest, nuint inputIndex, out OpenVinoSharp.Ov.TensorHandle tensor) { }
         [System.Runtime.CompilerServices.SkipLocalsInit]
         [System.Runtime.InteropServices.LibraryImport("openvino_c")]
         public static OpenVinoSharp.Ov.Status ov_infer_request_get_output_tensor(OpenVinoSharp.Ov.InferRequestHandle inferRequest, out OpenVinoSharp.Ov.TensorHandle tensor) { }
@@ -218,6 +224,7 @@ namespace OpenVinoSharp
     }
     public sealed class OvCompiledModel : System.Runtime.InteropServices.SafeHandle
     {
+        public System.UIntPtr InputCount { get; }
         public override bool IsInvalid { get; }
         public OpenVinoSharp.OvInferRequest CreateInferRequest() { }
         protected override bool ReleaseHandle() { }
@@ -239,6 +246,7 @@ namespace OpenVinoSharp
     {
         public override bool IsInvalid { get; }
         public OpenVinoSharp.OvTensor GetInputTensor() { }
+        public OpenVinoSharp.OvTensor GetInputTensor(nuint inputIndex) { }
         public OpenVinoSharp.OvTensor GetOutputTensor() { }
         public System.Collections.Generic.IReadOnlyList<OpenVinoSharp.OvProfilingInfo> GetProfilingInfo() { }
         public void Infer() { }
