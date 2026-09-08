@@ -24,7 +24,7 @@ var concurrentTestDuration = TimeSpan.FromSeconds(1);
 int[] concurrentThreadCountsToTest = [1, 2, 4, 8, 16];
 ProfilingConfiguration[] configurations =
 [
-    new("CPU", 16, 8, true), // 16 threads / 8 streams = 2 thread(s) per stream
+    new("CPU 16xThreads 8xStreams", 16, 8, false), // 16 threads / 8 streams = 2 thread(s) per stream
     //new("CPU", null, null, false),
     // NOTE: Without -DTHREADING=SEQ custom OpenVino build this is limited to 1
     //       internal thread and does not use calling thread for inference.
@@ -64,7 +64,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Single-request performance");
     report("```");
-    report($"{"Configuration",-16};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
+    report($"{"Configuration",-32};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
     var configurationToProfilingInfo = new List<(ProfilingConfiguration Configuration, IReadOnlyList<NodeProfile> ProfilingInfo)>();
     foreach (var configuration in configurations)
     {
@@ -75,7 +75,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Concurrent app-thread scaling (single shared compiled model)");
     report("```");
-    report($"{"Configuration",-16};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
+    report($"{"Configuration",-32};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
     foreach (var configuration in configurations)
     {
         RunModelConcurrent(modelPath, configuration, concurrentThreadCountsToTest, concurrentTestDuration, report);
@@ -138,7 +138,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
 
     var meanPerBatchMilliseconds = totalMilliseconds / iterations;
-    log($"{configuration.Name,-16};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
+    log($"{configuration.Name,-32};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
         $"{iterations,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
     if (allocatedBytes != 0)
     {
@@ -273,7 +273,7 @@ static void RunModelConcurrent(
             .ToArray();
         var throughputPerSecond = totalIterations / (elapsedMilliseconds / 1000.0);
 
-        log($"{configuration.Name,-16};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
+        log($"{configuration.Name,-32};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
             $"{meanCallMilliseconds.Min(),18:F3};{meanCallMilliseconds.Average(),18:F3};{meanCallMilliseconds.Max(),18:F3}");
         if (allocatedBytesPerThread.Any(allocatedBytes => allocatedBytes != 0))
         {
