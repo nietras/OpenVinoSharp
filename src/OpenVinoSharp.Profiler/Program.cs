@@ -8,10 +8,12 @@ using System.Text;
 using System.Threading;
 using OpenVinoSharp;
 
-const string SearchPattern = "*.onnx";
+string[] searchPatterns = ["*.onnx"];
 const string DeviceName = "CPU";
 const string EnableProfilingProperty = "PERF_COUNT";
 const string EnableProfilingValue = "YES";
+const string InferencePrecisionHintProperty = "INFERENCE_PRECISION_HINT";
+const string InferencePrecisionHintFp32Value = "f32"; // Default for OpenVINO appears to be bf16
 const string InferenceThreadCountProperty = "INFERENCE_NUM_THREADS";
 const string NumberOfStreamsProperty = "NUM_STREAMS";
 //const string EnableCpuPinningProperty = "ENABLE_CPU_PINNING";
@@ -24,8 +26,10 @@ var concurrentTestDuration = TimeSpan.FromSeconds(1);
 int[] concurrentThreadCountsToTest = [1, 2, 4, 8, 16];
 ProfilingConfiguration[] configurations =
 [
-    new("CPU 16xThreads 8xStreams", 16, 8, false), // 16 threads / 8 streams = 2 thread(s) per stream
-    //new("CPU", null, null, false),
+    //new("CPU 32xThreads 16xStreams", 32, 16, false, InferencePrecisionHintFp32Value),
+    new("CPU 16xThreads 8xStreams", 16, 8, true, InferencePrecisionHintFp32Value), // 16 threads / 8 streams = 2 thread(s) per stream
+    //new("CPU 16xThreads 4xStreams", 16, 4, false, InferencePrecisionHintFp32Value),
+    //new("CPU", null, null, false, InferencePrecisionHintFp32Value),
     // NOTE: Without -DTHREADING=SEQ custom OpenVino build this is limited to 1
     //       internal thread and does not use calling thread for inference.
     //       There does not appear to be a dynamic option directly for calling
@@ -40,11 +44,13 @@ Action<string> log = message =>
 };
 
 var workingDirectory = Environment.CurrentDirectory;
-var modelPaths = Directory.GetFiles(workingDirectory, SearchPattern, SearchOption.AllDirectories);
-Array.Sort(modelPaths, StringComparer.Ordinal);
+var modelPaths = searchPatterns
+    .SelectMany(searchPattern => Directory.GetFiles(workingDirectory, searchPattern, SearchOption.AllDirectories))
+    .Order(StringComparer.Ordinal)
+    .ToArray();
 
 log($"Current directory: '{workingDirectory}'");
-log($"Found {modelPaths.Length} files for '{SearchPattern}': " +
+log($"Found {modelPaths.Length} files for '{string.Join("', '", searchPatterns)}': " +
     $"{string.Join(", ", modelPaths.Select(path => $"'{path}'"))}");
 
 foreach (var modelPath in modelPaths)
@@ -94,7 +100,7 @@ foreach (var modelPath in modelPaths)
 
 if (modelPaths.Length == 0)
 {
-    log($"No models found. Copy one or more '{SearchPattern}' files below '{workingDirectory}'.");
+    log($"No models found. Copy one or more '{string.Join("' or '", searchPatterns)}' files below '{workingDirectory}'.");
 }
 
 static IReadOnlyList<NodeProfile> RunModel(
@@ -292,6 +298,10 @@ static OvCore CreateProfilingCore(ProfilingConfiguration configuration)
     {
         core.SetProperty(DeviceName, EnableProfilingProperty, EnableProfilingValue);
     }
+    if (configuration.InferencePrecisionHint is { } inferencePrecisionHint)
+    {
+        core.SetProperty(DeviceName, InferencePrecisionHintProperty, inferencePrecisionHint);
+    }
     if (configuration.InferenceThreadCount is { } inferenceThreadCount)
     {
         core.SetProperty(DeviceName, InferenceThreadCountProperty, inferenceThreadCount.ToString());
@@ -390,7 +400,8 @@ sealed record ProfilingConfiguration(
     string Name,
     int? InferenceThreadCount,
     int? StreamCount,
-    bool EnableProfiling);
+    bool EnableProfiling,
+    string? InferencePrecisionHint = null);
 
 sealed class NodeProfile(OvProfilingInfo profilingInfo)
 {
