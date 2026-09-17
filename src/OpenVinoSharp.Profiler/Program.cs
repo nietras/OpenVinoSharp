@@ -360,16 +360,16 @@ static double ElapsedMilliseconds(long beforeTimestamp) =>
 
 sealed class InputTensors : IDisposable
 {
-    private readonly OvTensor[] tensors;
+    readonly OvTensor[] _tensors;
 
     public InputTensors(OvInferRequest inferRequest, nuint inputCount)
     {
-        tensors = new OvTensor[checked((int)inputCount)];
+        _tensors = new OvTensor[checked((int)inputCount)];
         try
         {
             for (nuint inputIndex = 0; inputIndex < inputCount; ++inputIndex)
             {
-                tensors[checked((int)inputIndex)] = inferRequest.GetInputTensor(inputIndex);
+                _tensors[checked((int)inputIndex)] = inferRequest.GetInputTensor(inputIndex);
             }
         }
         catch
@@ -381,7 +381,7 @@ sealed class InputTensors : IDisposable
 
     public void WriteFirstByte(byte value)
     {
-        foreach (var tensor in tensors)
+        foreach (var tensor in _tensors)
         {
             Marshal.WriteByte(tensor.Data, 0, value);
         }
@@ -389,7 +389,7 @@ sealed class InputTensors : IDisposable
 
     public void Dispose()
     {
-        foreach (var tensor in tensors)
+        foreach (var tensor in _tensors)
         {
             tensor?.Dispose();
         }
