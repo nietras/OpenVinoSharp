@@ -8,10 +8,12 @@ using System.Text;
 using System.Threading;
 using OpenVinoSharp;
 
-const string SearchPattern = "*.onnx";
+string[] searchPatterns = ["*.onnx"];
 const string DeviceName = "CPU";
 const string EnableProfilingProperty = "PERF_COUNT";
 const string EnableProfilingValue = "YES";
+const string InferencePrecisionHintProperty = "INFERENCE_PRECISION_HINT";
+const string InferencePrecisionHintFp32Value = "f32"; // Default for OpenVINO appears to be bf16
 const string InferenceThreadCountProperty = "INFERENCE_NUM_THREADS";
 const string NumberOfStreamsProperty = "NUM_STREAMS";
 //const string EnableCpuPinningProperty = "ENABLE_CPU_PINNING";
@@ -24,8 +26,10 @@ var concurrentTestDuration = TimeSpan.FromSeconds(1);
 int[] concurrentThreadCountsToTest = [1, 2, 4, 8, 16];
 ProfilingConfiguration[] configurations =
 [
-    new("CPU", 16, 8, true), // 16 threads / 8 streams = 2 thread(s) per stream
-    //new("CPU", null, null, false),
+    //new("CPU 32xThreads 16xStreams", 32, 16, false, InferencePrecisionHintFp32Value),
+    new("CPU 16xThreads 8xStreams", 16, 8, true, InferencePrecisionHintFp32Value), // 16 threads / 8 streams = 2 thread(s) per stream
+    //new("CPU 16xThreads 4xStreams", 16, 4, false, InferencePrecisionHintFp32Value),
+    //new("CPU", null, null, false, InferencePrecisionHintFp32Value),
     // NOTE: Without -DTHREADING=SEQ custom OpenVino build this is limited to 1
     //       internal thread and does not use calling thread for inference.
     //       There does not appear to be a dynamic option directly for calling
@@ -40,11 +44,13 @@ Action<string> log = message =>
 };
 
 var workingDirectory = Environment.CurrentDirectory;
-var modelPaths = Directory.GetFiles(workingDirectory, SearchPattern, SearchOption.AllDirectories);
-Array.Sort(modelPaths, StringComparer.Ordinal);
+var modelPaths = searchPatterns
+    .SelectMany(searchPattern => Directory.GetFiles(workingDirectory, searchPattern, SearchOption.AllDirectories))
+    .Order(StringComparer.Ordinal)
+    .ToArray();
 
 log($"Current directory: '{workingDirectory}'");
-log($"Found {modelPaths.Length} files for '{SearchPattern}': " +
+log($"Found {modelPaths.Length} files for '{string.Join("', '", searchPatterns)}': " +
     $"{string.Join(", ", modelPaths.Select(path => $"'{path}'"))}");
 
 foreach (var modelPath in modelPaths)
@@ -64,7 +70,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Single-request performance");
     report("```");
-    report($"{"Configuration",-16};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
+    report($"{"Configuration",-32};BatchSize;Compile [ms];First [ms];Iterations;Mean/b [ms];Mean/s [ms]");
     var configurationToProfilingInfo = new List<(ProfilingConfiguration Configuration, IReadOnlyList<NodeProfile> ProfilingInfo)>();
     foreach (var configuration in configurations)
     {
@@ -75,7 +81,7 @@ foreach (var modelPath in modelPaths)
     report(string.Empty);
     report("## Concurrent app-thread scaling (single shared compiled model)");
     report("```");
-    report($"{"Configuration",-16};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
+    report($"{"Configuration",-32};Threads;Iterations;Throughput [calls/s];Min Mean/call [ms];Avg Mean/call [ms];Max Mean/call [ms]");
     foreach (var configuration in configurations)
     {
         RunModelConcurrent(modelPath, configuration, concurrentThreadCountsToTest, concurrentTestDuration, report);
@@ -94,7 +100,7 @@ foreach (var modelPath in modelPaths)
 
 if (modelPaths.Length == 0)
 {
-    log($"No models found. Copy one or more '{SearchPattern}' files below '{workingDirectory}'.");
+    log($"No models found. Copy one or more '{string.Join("' or '", searchPatterns)}' files below '{workingDirectory}'.");
 }
 
 static IReadOnlyList<NodeProfile> RunModel(
@@ -110,7 +116,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var compileMilliseconds = ElapsedMilliseconds(beforeCompile);
 
     using var inferRequest = compiledModel.CreateInferRequest();
-    using var inputTensor = inferRequest.GetInputTensor();
+    using var inputTensors = new InputTensors(inferRequest, compiledModel.InputCount);
     var beforeFirstInference = Stopwatch.GetTimestamp();
     inferRequest.Infer();
     var firstInferenceMilliseconds = ElapsedMilliseconds(beforeFirstInference);
@@ -118,7 +124,7 @@ static IReadOnlyList<NodeProfile> RunModel(
 
     for (var warmup = 0; warmup < WarmupCount; ++warmup)
     {
-        Marshal.WriteByte(inputTensor.Data, 0, (byte)warmup);
+        inputTensors.WriteFirstByte((byte)warmup);
         inferRequest.Infer();
         _ = Marshal.ReadByte(outputTensor.Data);
     }
@@ -128,7 +134,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
     while (totalMilliseconds < TargetRunDurationMilliseconds || iterations < MinimumIterations)
     {
-        Marshal.WriteByte(inputTensor.Data, 0, (byte)iterations);
+        inputTensors.WriteFirstByte((byte)iterations);
         var beforeInference = Stopwatch.GetTimestamp();
         inferRequest.Infer();
         _ = Marshal.ReadByte(outputTensor.Data);
@@ -138,7 +144,7 @@ static IReadOnlyList<NodeProfile> RunModel(
     var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
 
     var meanPerBatchMilliseconds = totalMilliseconds / iterations;
-    log($"{configuration.Name,-16};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
+    log($"{configuration.Name,-32};{BatchSize,9};{compileMilliseconds,12:F3};{firstInferenceMilliseconds,10:F3};" +
         $"{iterations,10};{meanPerBatchMilliseconds,11:F3};{meanPerBatchMilliseconds / BatchSize,11:F3}");
     if (allocatedBytes != 0)
     {
@@ -195,19 +201,19 @@ static void RunModelConcurrent(
             threads[index] = new Thread(() =>
             {
                 using var inferRequest = compiledModel.CreateInferRequest();
-                using var inputTensor = inferRequest.GetInputTensor();
+                using var inputTensors = new InputTensors(inferRequest, compiledModel.InputCount);
                 inferRequest.Infer();
                 using var outputTensor = inferRequest.GetOutputTensor();
                 for (var warmup = 0; warmup < WarmupCount; ++warmup)
                 {
-                    Marshal.WriteByte(inputTensor.Data, 0, (byte)warmup);
+                    inputTensors.WriteFirstByte((byte)warmup);
                     inferRequest.Infer();
                     _ = Marshal.ReadByte(outputTensor.Data);
                 }
 
                 barrier.SignalAndWait();
                 _ = GC.GetAllocatedBytesForCurrentThread();
-                Marshal.WriteByte(inputTensor.Data, 0, 0);
+                inputTensors.WriteFirstByte(0);
                 var beforePrimingInference = Stopwatch.GetTimestamp();
                 inferRequest.Infer();
                 _ = Marshal.ReadByte(outputTensor.Data);
@@ -215,7 +221,7 @@ static void RunModelConcurrent(
 
                 if (Volatile.Read(ref running) != 0)
                 {
-                    Marshal.WriteByte(inputTensor.Data, 0, 0);
+                    inputTensors.WriteFirstByte(0);
                     var beforePrimingLoopInference = Stopwatch.GetTimestamp();
                     inferRequest.Infer();
                     _ = Marshal.ReadByte(outputTensor.Data);
@@ -228,7 +234,7 @@ static void RunModelConcurrent(
                 var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
                 while (Volatile.Read(ref running) != 0)
                 {
-                    Marshal.WriteByte(inputTensor.Data, 0, (byte)iterations);
+                    inputTensors.WriteFirstByte((byte)iterations);
                     var beforeInference = Stopwatch.GetTimestamp();
                     inferRequest.Infer();
                     _ = Marshal.ReadByte(outputTensor.Data);
@@ -273,7 +279,7 @@ static void RunModelConcurrent(
             .ToArray();
         var throughputPerSecond = totalIterations / (elapsedMilliseconds / 1000.0);
 
-        log($"{configuration.Name,-16};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
+        log($"{configuration.Name,-32};{threadCount,7};{totalIterations,10};{throughputPerSecond,20:F1};" +
             $"{meanCallMilliseconds.Min(),18:F3};{meanCallMilliseconds.Average(),18:F3};{meanCallMilliseconds.Max(),18:F3}");
         if (allocatedBytesPerThread.Any(allocatedBytes => allocatedBytes != 0))
         {
@@ -291,6 +297,10 @@ static OvCore CreateProfilingCore(ProfilingConfiguration configuration)
     if (configuration.EnableProfiling)
     {
         core.SetProperty(DeviceName, EnableProfilingProperty, EnableProfilingValue);
+    }
+    if (configuration.InferencePrecisionHint is { } inferencePrecisionHint)
+    {
+        core.SetProperty(DeviceName, InferencePrecisionHintProperty, inferencePrecisionHint);
     }
     if (configuration.InferenceThreadCount is { } inferenceThreadCount)
     {
@@ -348,11 +358,50 @@ static void WriteNodeProfileSummary(
 static double ElapsedMilliseconds(long beforeTimestamp) =>
     (Stopwatch.GetTimestamp() - beforeTimestamp) * 1000.0 / Stopwatch.Frequency;
 
+sealed class InputTensors : IDisposable
+{
+    readonly OvTensor[] _tensors;
+
+    public InputTensors(OvInferRequest inferRequest, nuint inputCount)
+    {
+        _tensors = new OvTensor[checked((int)inputCount)];
+        try
+        {
+            for (nuint inputIndex = 0; inputIndex < inputCount; ++inputIndex)
+            {
+                _tensors[checked((int)inputIndex)] = inferRequest.GetInputTensor(inputIndex);
+            }
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+    }
+
+    public void WriteFirstByte(byte value)
+    {
+        foreach (var tensor in _tensors)
+        {
+            Marshal.WriteByte(tensor.Data, 0, value);
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var tensor in _tensors)
+        {
+            tensor?.Dispose();
+        }
+    }
+}
+
 sealed record ProfilingConfiguration(
     string Name,
     int? InferenceThreadCount,
     int? StreamCount,
-    bool EnableProfiling);
+    bool EnableProfiling,
+    string? InferencePrecisionHint = null);
 
 sealed class NodeProfile(OvProfilingInfo profilingInfo)
 {

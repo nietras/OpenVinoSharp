@@ -150,10 +150,16 @@ public static partial class Ov
     public static partial Status ov_compiled_model_create_infer_request(
         CompiledModelHandle compiledModel, out InferRequestHandle inferRequest);
     [LibraryImport(LibraryName)]
+    public static partial Status ov_compiled_model_inputs_size(
+        CompiledModelHandle compiledModel, out nuint inputCount);
+    [LibraryImport(LibraryName)]
     public static partial void ov_compiled_model_free(CompiledModelHandle compiledModel);
     [LibraryImport(LibraryName)]
     public static partial Status ov_infer_request_get_input_tensor(
         InferRequestHandle inferRequest, out TensorHandle tensor);
+    [LibraryImport(LibraryName)]
+    public static partial Status ov_infer_request_get_input_tensor_by_index(
+        InferRequestHandle inferRequest, nuint inputIndex, out TensorHandle tensor);
     [LibraryImport(LibraryName)]
     public static partial Status ov_infer_request_set_input_tensor(
         InferRequestHandle inferRequest, TensorHandle tensor);

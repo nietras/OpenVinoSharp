@@ -20,6 +20,13 @@ public sealed class OvInferRequest : SafeHandle
         return new OvTensor(tensor);
     }
 
+    public OvTensor GetInputTensor(nuint inputIndex)
+    {
+        Ov.ov_infer_request_get_input_tensor_by_index(
+            new Ov.InferRequestHandle(handle), inputIndex, out var tensor).Ok();
+        return new OvTensor(tensor);
+    }
+
     public OvTensor GetOutputTensor()
     {
         Ov.ov_infer_request_get_output_tensor(new Ov.InferRequestHandle(handle), out var tensor).Ok();
